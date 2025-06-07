@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Command } from 'cmdk';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Search, Plus, BarChart3, Users, Settings, 
-  FileText, Calendar, Filter, Download 
+import {
+  Search, Plus, BarChart3, Users, Settings,
+  FileText, Calendar, Filter, Download
 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
+import { useNavigate } from 'react-router-dom';
+import { exportService } from '../../services/exportService';
 
 interface CommandItem {
   id: string;
@@ -17,8 +19,8 @@ interface CommandItem {
 }
 
 export const CommandPalette: React.FC = () => {
-  const { 
-    commandPaletteOpen, 
+  const {
+    commandPaletteOpen,
     setCommandPaletteOpen,
     setOpportunityModalOpen,
     setJobModalOpen,
@@ -26,6 +28,7 @@ export const CommandPalette: React.FC = () => {
     setEditingJob
   } = useStore();
   const [search, setSearch] = useState('');
+  const navigate = useNavigate();
 
   const commands: CommandItem[] = [
     {
@@ -58,7 +61,7 @@ export const CommandPalette: React.FC = () => {
       subtitle: 'Open analytics dashboard',
       icon: <BarChart3 className="h-4 w-4" />,
       action: () => {
-        // TODO: Navigate to analytics
+        navigate('/analytics');
         setCommandPaletteOpen(false);
       },
       keywords: ['analytics', 'dashboard', 'metrics', 'reports']
@@ -69,7 +72,7 @@ export const CommandPalette: React.FC = () => {
       subtitle: 'Manage team members and roles',
       icon: <Users className="h-4 w-4" />,
       action: () => {
-        // TODO: Navigate to team
+        navigate('/team');
         setCommandPaletteOpen(false);
       },
       keywords: ['team', 'users', 'members', 'roles']
@@ -80,7 +83,7 @@ export const CommandPalette: React.FC = () => {
       subtitle: 'Switch to calendar view',
       icon: <Calendar className="h-4 w-4" />,
       action: () => {
-        // TODO: Switch to calendar view
+        navigate('/calendar');
         setCommandPaletteOpen(false);
       },
       keywords: ['calendar', 'schedule', 'dates', 'timeline']
@@ -91,7 +94,7 @@ export const CommandPalette: React.FC = () => {
       subtitle: 'Export pipeline data to CSV',
       icon: <Download className="h-4 w-4" />,
       action: () => {
-        // TODO: Export data
+        exportService.exportPipelineCSV();
         setCommandPaletteOpen(false);
       },
       keywords: ['export', 'download', 'csv', 'data']
