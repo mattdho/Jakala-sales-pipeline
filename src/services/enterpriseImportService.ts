@@ -41,67 +41,82 @@ export class EnterpriseImportService {
   }
 
   private initializeSchemas() {
-    // Client Accounts Schema
+    // Client Accounts Schema - Only Company Name Required
     this.schemas.set('clients', {
       name: 'Client Accounts',
-      description: 'Import client account information with full validation',
+      description: 'Import client account information with flexible field mapping',
       table: 'accounts',
       validationRules: [
-        { field: 'name', type: 'required', message: 'Account name is required' },
-        { field: 'legal_name', type: 'required', message: 'Legal name is required' },
-        { field: 'industry', type: 'required', message: 'Industry is required' },
-        { field: 'industry_group', type: 'enum', value: ['SMBA', 'HSNE', 'DXP', 'TLCG', 'NEW_BUSINESS'], message: 'Invalid industry group' },
-        { field: 'payment_terms', type: 'enum', value: ['Net 15', 'Net 30', 'Net 45', 'Net 60', 'Due on Receipt'], message: 'Invalid payment terms' },
-        { field: 'name', type: 'length', value: { min: 2, max: 255 }, message: 'Name must be between 2 and 255 characters' }
+        // Only company name is mandatory
+        { field: 'name', type: 'required', message: 'Company name is required' },
+        { field: 'name', type: 'length', value: { min: 2, max: 255 }, message: 'Company name must be between 2 and 255 characters' },
+        // All other fields are optional with smart defaults
+        { field: 'industry_group', type: 'enum', value: ['SMBA', 'HSNE', 'DXP', 'TLCG', 'NEW_BUSINESS', ''], message: 'Invalid industry group' }
       ],
       transformations: {
-        name: (value: string) => value?.trim(),
-        legal_name: (value: string) => value?.trim(),
-        industry: (value: string) => value?.trim(),
-        industry_group: (value: string) => this.mapIndustryGroup(value),
-        payment_terms: (value: string) => value || 'Net 30'
+        // Primary field - use any name-related column
+        name: (value: string) => this.extractCompanyName(value),
+        // Auto-populate legal name if not provided
+        legal_name: (value: string) => value?.trim() || '',
+        // Auto-detect industry from company name if not provided
+        industry: (value: string) => value?.trim() || '',
+        // Auto-map industry group with intelligent detection
+        industry_group: (value: string) => this.mapIndustryGroup(value || ''),
+        // Default payment terms
+        payment_terms: (value: string) => value?.trim() || 'Net 30',
+        // Handle various address formats
+        billing_address: (value: string) => value?.trim() || '',
+        // Extract client short codes
+        client_short: (value: string) => value?.trim().toUpperCase() || '',
+        // Handle platform names
+        platform_name: (value: string) => value?.trim() || ''
       },
       duplicateStrategy: 'skip',
       batchSize: 100
     });
 
-    // Projects Schema
+    // Projects Schema - Flexible project import
     this.schemas.set('projects', {
       name: 'Project Jobs',
-      description: 'Import project and job data with relationship validation',
+      description: 'Import project and job data with flexible relationship mapping',
       table: 'jobs',
       validationRules: [
+        // Only project name and client are required
         { field: 'name', type: 'required', message: 'Project name is required' },
-        { field: 'client_name', type: 'required', message: 'Client name is required' },
-        { field: 'unique_id', type: 'required', message: 'Unique ID is required' },
-        { field: 'is_new_business', type: 'enum', value: ['true', 'false', '1', '0', 'yes', 'no'], message: 'Invalid boolean value for new business flag' }
+        { field: 'client_name', type: 'required', message: 'Client name is required' }
+        // All other fields are optional with smart defaults
       ],
       transformations: {
         name: (value: string) => value?.trim(),
         client_name: (value: string) => value?.trim(),
+        project_name: (value: string) => value?.trim(),
+        unique_id: (value: string) => value?.trim() || this.generateUniqueId(),
         is_new_business: (value: string) => this.parseBoolean(value),
         start_quarter: (value: string) => this.parseQuarter(value),
-        end_quarter: (value: string) => this.parseQuarter(value)
+        end_quarter: (value: string) => this.parseQuarter(value),
+        client_short: (value: string) => value?.trim().toUpperCase() || '',
+        project_short: (value: string) => value?.trim().toLowerCase() || ''
       },
       duplicateStrategy: 'skip',
       batchSize: 50
     });
 
-    // Users Schema
+    // Users Schema - Basic user requirements only
     this.schemas.set('users', {
       name: 'Team Members',
-      description: 'Import user accounts with role and permission validation',
+      description: 'Import user accounts with flexible role assignment',
       table: 'users',
       validationRules: [
         { field: 'email', type: 'required', message: 'Email is required' },
         { field: 'email', type: 'email', message: 'Invalid email format' },
-        { field: 'name', type: 'required', message: 'Name is required' },
-        { field: 'role', type: 'enum', value: ['industry_leader', 'account_owner', 'client_leader', 'admin'], message: 'Invalid role' }
+        { field: 'name', type: 'required', message: 'Name is required' }
+        // Role is optional with smart default
       ],
       transformations: {
         email: (value: string) => value?.toLowerCase().trim(),
         name: (value: string) => value?.trim(),
-        role: (value: string) => value || 'client_leader'
+        role: (value: string) => value || 'client_leader',
+        industry_groups: (value: string) => this.parseIndustryGroups(value)
       },
       duplicateStrategy: 'update',
       batchSize: 25
@@ -156,58 +171,44 @@ export class EnterpriseImportService {
     let validRows = 0;
     let duplicates = 0;
 
-    // Validate each row
+    // Process each row with intelligent field mapping
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
       const rowNumber = i + 2; // Account for header row
       let rowValid = true;
 
-      // Apply transformations
-      const transformedRow = { ...row };
-      for (const [field, transformer] of Object.entries(schema.transformations)) {
-        if (transformedRow[field] !== undefined) {
-          try {
-            transformedRow[field] = transformer(transformedRow[field]);
-          } catch (error) {
-            warnings.push({
-              row: rowNumber,
-              field,
-              message: `Transformation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-            });
-          }
-        }
-      }
+      // Enhanced transformations with auto-fill
+      const transformedRow = this.enhancedTransformRow(row, schema, rowNumber);
 
-      // Validate against rules
+      // Validate only the required fields
       for (const rule of schema.validationRules) {
         const value = transformedRow[rule.field];
         const isValid = this.validateField(value, rule);
 
-        if (!isValid) {
-          errors.push({
-            row: rowNumber,
-            field: rule.field,
-            message: rule.message
-          });
-          rowValid = false;
+        if (!isValid && rule.type === 'required') {
+          // For required fields that are empty, try alternative field names
+          const alternativeValue = this.findAlternativeFieldValue(row, rule.field);
+          if (alternativeValue) {
+            transformedRow[rule.field] = alternativeValue;
+            warnings.push({
+              row: rowNumber,
+              field: rule.field,
+              message: `Auto-mapped from alternative field`
+            });
+          } else {
+            errors.push({
+              row: rowNumber,
+              field: rule.field,
+              message: rule.message
+            });
+            rowValid = false;
+          }
         }
       }
 
-      // Check for duplicates (simplified - would use database lookup in production)
-      if (rowValid && this.isDuplicate(transformedRow, schema)) {
-        duplicates++;
-        if (schema.duplicateStrategy === 'error') {
-          errors.push({
-            row: rowNumber,
-            message: 'Duplicate record detected'
-          });
-          rowValid = false;
-        } else {
-          warnings.push({
-            row: rowNumber,
-            message: `Duplicate record will be ${schema.duplicateStrategy === 'skip' ? 'skipped' : 'updated'}`
-          });
-        }
+      // Auto-fill missing critical fields for client import
+      if (schemaName === 'clients' && rowValid) {
+        this.autoFillClientFields(transformedRow, warnings, rowNumber);
       }
 
       if (rowValid) validRows++;
@@ -219,8 +220,8 @@ export class EnterpriseImportService {
       success: errors.length === 0,
       message: errors.length === 0 
         ? `Validation completed successfully. ${validRows} rows ready for import.`
-        : `Validation failed with ${errors.length} errors.`,
-      imported: 0, // Will be set during actual import
+        : `Found ${errors.length} validation errors that need attention.`,
+      imported: 0,
       updated: 0,
       skipped: duplicates,
       errors,
@@ -522,33 +523,80 @@ export class EnterpriseImportService {
   }
 
   private mapIndustryGroup(code: string): string {
+    // If already a valid industry group, return it
+    if (['SMBA', 'HSNE', 'DXP', 'TLCG', 'NEW_BUSINESS'].includes(code.toUpperCase())) {
+      return code.toUpperCase();
+    }
+
     const mapping: Record<string, string> = {
       'SMBA': 'SMBA',
-      'HSNE': 'HSNE',
+      'HSNE': 'HSNE', 
       'DXP': 'DXP',
       'TLCG': 'TLCG',
       'NEW_BUSINESS': 'NEW_BUSINESS',
       'NEW_BIZ': 'NEW_BUSINESS'
     };
     
-    return mapping[code.toUpperCase()] || 'NEW_BUSINESS';
+    // Try direct mapping first
+    if (mapping[code.toUpperCase()]) {
+      return mapping[code.toUpperCase()];
+    }
+
+    // Auto-detect based on code patterns
+    const upperCode = code.toUpperCase();
+    if (upperCode.includes('UNIV') || upperCode.includes('COLLEGE') || 
+        upperCode.includes('EDU') || upperCode.includes('SCHOOL') || 
+        upperCode.includes('SPORT') || upperCode.includes('NON-PROFIT')) {
+      return 'HSNE';
+    } else if (upperCode.includes('LUXURY') || upperCode.includes('TRAVEL') || 
+               upperCode.includes('HOTEL') || upperCode.includes('FASHION') || 
+               upperCode.includes('BEAUTY') || upperCode.includes('RETAIL')) {
+      return 'TLCG';
+    } else if (upperCode.includes('TECH') || upperCode.includes('SOFTWARE') || 
+               upperCode.includes('DIGITAL') || upperCode.includes('DEV')) {
+      return 'DXP';
+    } else if (upperCode.includes('MFG') || upperCode.includes('MANUFACTURING') || 
+               upperCode.includes('INDUSTRIAL') || upperCode.includes('SERVICE') || 
+               upperCode.includes('B2B') || upperCode.includes('AGRICULTURE')) {
+      return 'SMBA';
+    }
+    
+    // Default for unknown/new clients
+    return 'NEW_BUSINESS';
   }
 
   private extractIndustryFromName(name: string): string {
+    if (!name) return 'Professional Services';
+    
     const lowerName = name.toLowerCase();
     
-    if (lowerName.includes('university') || lowerName.includes('college')) {
+    if (lowerName.includes('university') || lowerName.includes('college') || 
+        lowerName.includes('school') || lowerName.includes('education')) {
       return 'Higher Education';
-    } else if (lowerName.includes('bank') || lowerName.includes('financial')) {
+    } else if (lowerName.includes('bank') || lowerName.includes('financial') || 
+               lowerName.includes('insurance') || lowerName.includes('credit')) {
       return 'Financial Services';
-    } else if (lowerName.includes('health') || lowerName.includes('medical')) {
+    } else if (lowerName.includes('health') || lowerName.includes('medical') || 
+               lowerName.includes('hospital') || lowerName.includes('pharma')) {
       return 'Healthcare';
-    } else if (lowerName.includes('tech') || lowerName.includes('software')) {
+    } else if (lowerName.includes('tech') || lowerName.includes('software') || 
+               lowerName.includes('digital') || lowerName.includes('data')) {
       return 'Technology';
-    } else if (lowerName.includes('travel') || lowerName.includes('luxury')) {
-      return 'Travel & Luxury';
-    } else if (lowerName.includes('manufacturing') || lowerName.includes('industrial')) {
+    } else if (lowerName.includes('travel') || lowerName.includes('hotel') || 
+               lowerName.includes('luxury') || lowerName.includes('resort')) {
+      return 'Travel & Hospitality';
+    } else if (lowerName.includes('manufacturing') || lowerName.includes('industrial') || 
+               lowerName.includes('construction') || lowerName.includes('materials')) {
       return 'Manufacturing';
+    } else if (lowerName.includes('retail') || lowerName.includes('fashion') || 
+               lowerName.includes('beauty') || lowerName.includes('cosmetics')) {
+      return 'Retail & Consumer';
+    } else if (lowerName.includes('non-profit') || lowerName.includes('foundation') || 
+               lowerName.includes('charity') || lowerName.includes('ngo')) {
+      return 'Non-Profit';
+    } else if (lowerName.includes('government') || lowerName.includes('state') || 
+               lowerName.includes('federal') || lowerName.includes('municipal')) {
+      return 'Government';
     } else {
       return 'Professional Services';
     }
@@ -703,6 +751,114 @@ export class EnterpriseImportService {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // Helper method to extract company name from various column formats
+  private extractCompanyName(value: any): string {
+    if (!value) return '';
+    
+    const str = String(value).trim();
+    
+    // Handle cases where company name might be in different formats
+    if (str.includes(' - ') && str.length > 50) {
+      // Likely a project name, extract company part
+      return str.split(' - ')[0].trim();
+    }
+    
+    return str;
+  }
+
+  // Helper method to generate unique ID if not provided
+  private generateUniqueId(): string {
+    return 'auto_' + Math.random().toString(36).substr(2, 9);
+  }
+
+  // Helper method to parse industry groups from various formats
+  private parseIndustryGroups(value: string): string[] {
+    if (!value) return ['NEW_BUSINESS'];
+    
+    const groups = value.split(',').map(g => g.trim().toUpperCase());
+    return groups.filter(g => ['SMBA', 'HSNE', 'DXP', 'TLCG', 'NEW_BUSINESS'].includes(g));
+  }
+
+  // Enhanced transformation with intelligent field mapping
+  private enhancedTransformRow(row: any, schema: ImportSchema, rowNumber: number): any {
+    const transformedRow = { ...row };
+
+    // Apply schema transformations
+    for (const [field, transformer] of Object.entries(schema.transformations)) {
+      if (transformedRow[field] !== undefined) {
+        try {
+          transformedRow[field] = transformer(transformedRow[field]);
+        } catch (error) {
+          // Handle transformation errors gracefully
+          transformedRow[field] = '';
+        }
+      }
+    }
+
+    return transformedRow;
+  }
+
+  // Find alternative field names for common variations
+  private findAlternativeFieldValue(row: any, targetField: string): string | null {
+    const fieldMappings: Record<string, string[]> = {
+      'name': ['company_name', 'client_name', 'organization', 'account_name', 'business_name'],
+      'legal_name': ['name', 'company_name', 'official_name', 'full_name'],
+      'client_name': ['name', 'company_name', 'client', 'account'],
+      'industry': ['sector', 'business_type', 'category', 'field'],
+      'industry_group': ['group', 'division', 'segment', 'vertical']
+    };
+
+    const alternatives = fieldMappings[targetField] || [];
+    
+    for (const alt of alternatives) {
+      if (row[alt] && String(row[alt]).trim()) {
+        return String(row[alt]).trim();
+      }
+    }
+
+    return null;
+  }
+
+  // Auto-fill missing client fields based on company name
+  private autoFillClientFields(row: any, warnings: any[], rowNumber: number): void {
+    const companyName = row.name || '';
+
+    // Auto-fill legal name if missing
+    if (!row.legal_name) {
+      row.legal_name = companyName;
+      warnings.push({
+        row: rowNumber,
+        field: 'legal_name',
+        message: 'Auto-filled from company name'
+      });
+    }
+
+    // Auto-detect industry if missing
+    if (!row.industry) {
+      row.industry = this.extractIndustryFromName(companyName);
+      warnings.push({
+        row: rowNumber,
+        field: 'industry',
+        message: 'Auto-detected from company name'
+      });
+    }
+
+    // Auto-map industry group if missing or empty
+    if (!row.industry_group || row.industry_group === '') {
+      row.industry_group = this.mapIndustryGroup(row.client_short || companyName);
+      warnings.push({
+        row: rowNumber,
+        field: 'industry_group',
+        message: 'Auto-assigned based on analysis'
+      });
+    }
+
+    // Ensure payment terms default
+    if (!row.payment_terms) {
+      row.payment_terms = 'Net 30';
+    }
   }
 }
 
