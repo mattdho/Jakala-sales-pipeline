@@ -18,6 +18,7 @@ import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { OpportunityModal } from '../components/modals/OpportunityModal';
 import { JobModal } from '../components/modals/JobModal';
 import { FilterDrawer } from '../components/FilterDrawer';
+import { NotificationsPanel } from '../components/NotificationsPanel';
 
 const Dashboard: React.FC = () => {
   const {
@@ -138,6 +139,7 @@ const Dashboard: React.FC = () => {
       <OpportunityModal />
       <JobModal />
       <FilterDrawer />
+      <NotificationsPanel />
 
       <main className={`transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'} pt-6`}>
         <div className="px-4 sm:px-6 lg:px-8 pb-8">

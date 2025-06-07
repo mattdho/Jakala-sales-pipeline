@@ -20,6 +20,10 @@ interface AppState {
   // Filters Drawer
   isFilterDrawerOpen: boolean;
   setFilterDrawerOpen: (open: boolean) => void;
+
+  // Notifications Panel
+  notificationsPanelOpen: boolean;
+  setNotificationsPanelOpen: (open: boolean) => void;
   
   // Modal State
   isOpportunityModalOpen: boolean;
@@ -86,6 +90,9 @@ export const useStore = create<AppState>()(
 
       isFilterDrawerOpen: false,
       setFilterDrawerOpen: (isFilterDrawerOpen) => set({ isFilterDrawerOpen }),
+
+      notificationsPanelOpen: false,
+      setNotificationsPanelOpen: (notificationsPanelOpen) => set({ notificationsPanelOpen }),
       
       // Modal State
       isOpportunityModalOpen: false,
