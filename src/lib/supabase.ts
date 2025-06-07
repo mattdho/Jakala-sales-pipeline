@@ -152,8 +152,22 @@ export const subscribeToOpportunities = (callback: (payload: any) => void) => {
 export const subscribeToJobs = (callback: (payload: any) => void) => {
   return supabase
     .channel('jobs')
-    .on('postgres_changes', 
-      { event: '*', schema: 'public', table: 'jobs' }, 
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'jobs' },
+      callback
+    )
+    .subscribe();
+};
+
+export const subscribeToActivityLogs = (
+  userId: string,
+  callback: (payload: any) => void
+) => {
+  return supabase
+    .channel(`activity_logs_${userId}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'activity_logs', filter: `user_id=eq.${userId}` },
       callback
     )
     .subscribe();
