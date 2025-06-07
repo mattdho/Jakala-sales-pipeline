@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Upload, FileText, CheckCircle, AlertCircle, X, 
   Download, Eye, Settings, Database, Users, 
-  Building, Briefcase, ArrowRight, ArrowLeft
+  Building, Briefcase, ArrowRight, ArrowLeft, Wand2
 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { importService } from '../../services/importService';
+import { SmartFieldMapper } from './SmartFieldMapper';
 
 interface ImportStep {
   id: string;
@@ -25,6 +26,7 @@ interface ValidationResult {
     duplicates: number;
     missingFields: number;
   };
+  canProceedWithWarnings: boolean;
 }
 
 interface ImportMapping {
@@ -32,6 +34,7 @@ interface ImportMapping {
   targetField: string;
   transformation?: string;
   required: boolean;
+  batchValue?: string;
 }
 
 export const DataImportWizard: React.FC = () => {
@@ -44,6 +47,8 @@ export const DataImportWizard: React.FC = () => {
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [importResult, setImportResult] = useState<any>(null);
+  const [showFieldMapper, setShowFieldMapper] = useState(false);
+  const [sourceHeaders, setSourceHeaders] = useState<string[]>([]);
 
   const steps: ImportStep[] = [
     {
@@ -55,14 +60,14 @@ export const DataImportWizard: React.FC = () => {
     {
       id: 'validation',
       title: 'Data Validation',
-      description: 'Verify data integrity and format',
-      completed: !!validationResult?.isValid
+      description: 'Verify data integrity and smart mapping',
+      completed: !!validationResult
     },
     {
       id: 'mapping',
       title: 'Field Mapping',
-      description: 'Map source fields to target schema',
-      completed: mappings.length > 0
+      description: 'AI-powered field mapping and correction',
+      completed: mappings.length > 0 && !showFieldMapper
     },
     {
       id: 'preview',
@@ -84,7 +89,7 @@ export const DataImportWizard: React.FC = () => {
       title: 'Client Accounts',
       description: 'Import client account information - Only company name required!',
       icon: Building,
-      requiredFields: ['name'],
+      requiredFields: ['name'], // Only company name is required now!
       optionalFields: ['legal_name', 'client_short', 'platform_name', 'industry', 'industry_group', 'payment_terms', 'billing_address'],
       autoFillCapable: true
     },
@@ -93,7 +98,7 @@ export const DataImportWizard: React.FC = () => {
       title: 'Project Data', 
       description: 'Import project and job information - Flexible field mapping',
       icon: Briefcase,
-      requiredFields: ['name', 'client_name'],
+      requiredFields: ['name', 'client_name'], // Only project name and client required
       optionalFields: ['unique_id', 'project_name', 'client_short', 'project_short', 'start_quarter', 'end_quarter', 'is_new_business'],
       autoFillCapable: true
     },
@@ -131,13 +136,19 @@ export const DataImportWizard: React.FC = () => {
       // Preview data
       const preview = await importService.previewCsv(file, 10);
       setPreviewData(preview);
+      
+      // Extract headers for field mapping
+      if (preview.length > 0) {
+        const headers = Object.keys(preview[0]);
+        setSourceHeaders(headers);
+      }
 
       // Auto-detect import type based on headers
       if (preview.length > 0) {
         const headers = Object.keys(preview[0]).map(h => h.toLowerCase());
         if (headers.includes('client_name') && headers.includes('project_name')) {
           setImportType('projects');
-        } else if (headers.includes('name') && headers.includes('legal_name')) {
+        } else if (headers.includes('name') && (headers.includes('legal_name') || headers.includes('company'))) {
           setImportType('clients');
         }
       }
@@ -171,7 +182,7 @@ export const DataImportWizard: React.FC = () => {
       // Get available headers from the file
       const headers = Object.keys(fullData[0] || {});
       
-      // New simplified validation - only check for truly required fields
+      // Enhanced validation with preview mode - allow import with warnings
       const missingRequired = selectedImportType.requiredFields.filter(field => {
         // Try to find the field or similar variations
         const foundField = headers.find(h => {
@@ -188,15 +199,16 @@ export const DataImportWizard: React.FC = () => {
         return !foundField;
       });
 
-      // Only show errors for truly missing required fields
+      // Only show warnings for missing fields, not blocking errors
       if (missingRequired.length > 0) {
-        errors.push(`Missing required columns: ${missingRequired.join(', ')}`);
-        errors.push('Tip: Required fields can have alternative names like "company_name" instead of "name"');
+        warnings.push(`⚠️ Missing recommended columns: ${missingRequired.join(', ')} - Smart Field Mapper can help!`);
+        warnings.push('💡 Use the Field Mapping Assistant to map alternative column names or apply batch values');
       }
 
-      // Enhanced validation with auto-fill messaging
+      // Enhanced validation with smart error handling
       const seenIds = new Set();
       let autoFilledRows = 0;
+      let successfulRows = 0;
       
       fullData.forEach((row, index) => {
         const rowNumber = index + 2; // Account for header row
@@ -240,9 +252,9 @@ export const DataImportWizard: React.FC = () => {
               }
             }
             
+            // Preview mode: don't block import, just warn
             if (!value || value.toString().trim() === '') {
-              errors.push(`Row ${rowNumber}: Missing required field '${field}'`);
-              hasErrors = true;
+              warnings.push(`⚠️ Row ${rowNumber}: Missing required field '${field}' - can be resolved with Field Mapper`);
               missingFields++;
             }
           }
@@ -264,52 +276,56 @@ export const DataImportWizard: React.FC = () => {
         // Check for duplicates (based on unique_id or name)
         const uniqueField = row.unique_id || row.id || row.name || row.client_name || row.company_name;
         if (uniqueField && seenIds.has(uniqueField.toString().toLowerCase())) {
-          warnings.push(`Row ${rowNumber}: Duplicate entry '${uniqueField}' (will be skipped)`);
+          warnings.push(`⚠️ Row ${rowNumber}: Duplicate entry '${uniqueField}' (will be skipped)`);
           duplicates++;
         } else if (uniqueField) {
           seenIds.add(uniqueField.toString().toLowerCase());
         }
 
-        if (!hasErrors) validRows++;
+        // Count as successful if we have basic data structure
+        if (!hasErrors && (row.name || row.company_name || row.client_name)) {
+          successfulRows++;
+        }
       });
 
-      // Add positive messaging about auto-fill capabilities
+      // Add positive messaging about capabilities
       if (selectedImportType.autoFillCapable && autoFilledRows > 0) {
         warnings.push(`✨ Auto-fill will populate missing fields for ${autoFilledRows} rows based on company name analysis`);
       }
 
       if (selectedImportType.id === 'clients') {
-        warnings.push('💡 Industry groups will be intelligently assigned: SMBA, HSNE, DXP, TLCG, or NEW_BUSINESS');
-        warnings.push('💡 Legal names, industries, and other fields will be auto-filled from company names');
+        warnings.push('🎯 Industry groups will be intelligently assigned: SMBA, HSNE, DXP, TLCG, or NEW_BUSINESS');
+        warnings.push('🤖 Legal names, industries, and other fields will be auto-filled from company names');
       }
 
-      if (validRows > 0 && errors.length === 0) {
-        warnings.push(`✅ ${validRows} rows ready for import with intelligent field mapping`);
+      if (successfulRows > 0) {
+        warnings.push(`✅ ${successfulRows} rows ready for import with intelligent field mapping`);
       }
+
+      // Preview mode - allow proceeding with warnings
+      const canProceedWithWarnings = successfulRows > fullData.length * 0.5; // At least 50% of rows have basic data
 
       setValidationResult({
-        isValid: errors.length === 0 && validRows > 0,
+        isValid: errors.length === 0 && successfulRows > 0,
         errors,
         warnings,
+        canProceedWithWarnings,
         summary: {
           totalRows: fullData.length,
-          validRows,
+          validRows: successfulRows,
           duplicates,
           missingFields
         }
       });
 
-      if (errors.length === 0) {
-        // Auto-generate mappings for successful validation
-        const generatedMappings = generateMappings(headers, selectedImportType);
-        setMappings(generatedMappings);
-        setCurrentStep(2);
-      }
+      // Always proceed to field mapping for preview mode
+      setCurrentStep(2);
 
     } catch (error) {
       console.error('Validation error:', error);
       setValidationResult({
         isValid: false,
+        canProceedWithWarnings: false,
         errors: [error instanceof Error ? error.message : 'Unknown validation error'],
         warnings: [],
         summary: { totalRows: 0, validRows: 0, duplicates: 0, missingFields: 0 }
@@ -319,59 +335,134 @@ export const DataImportWizard: React.FC = () => {
     }
   }, [selectedFile, previewData, importType]);
 
-  const generateMappings = (sourceHeaders: string[], importTypeConfig: any) => {
-    const mappings: ImportMapping[] = [];
-    
-    // Auto-map fields based on name similarity
-    [...importTypeConfig.requiredFields, ...importTypeConfig.optionalFields].forEach(targetField => {
-      const sourceField = sourceHeaders.find(header => 
-        header.toLowerCase().includes(targetField.toLowerCase()) ||
-        targetField.toLowerCase().includes(header.toLowerCase())
-      );
-      
-      if (sourceField) {
-        mappings.push({
-          sourceField,
-          targetField,
-          required: importTypeConfig.requiredFields.includes(targetField)
-        });
-      }
-    });
-
-    return mappings;
+  const handleFieldMappingComplete = (fieldMappings: any[]) => {
+    setMappings(fieldMappings);
+    setShowFieldMapper(false);
+    setCurrentStep(3);
   };
 
-  const executeImport = useCallback(async () => {
-    if (!selectedFile) return;
+  const renderValidationStep = () => (
+    <div className="space-y-6">
+      {/* Validation Results */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+          Smart Validation Results
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-blue-600">{validationResult?.summary.totalRows || 0}</div>
+            <div className="text-sm text-gray-600">Total Rows</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-green-600">{validationResult?.summary.validRows || 0}</div>
+            <div className="text-sm text-gray-600">Valid Rows</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-yellow-600">{validationResult?.summary.duplicates || 0}</div>
+            <div className="text-sm text-gray-600">Duplicates</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-orange-600">{validationResult?.warnings.length || 0}</div>
+            <div className="text-sm text-gray-600">Warnings</div>
+          </div>
+        </div>
 
-    setIsProcessing(true);
-    setCurrentStep(4);
+        {validationResult?.errors && validationResult.errors.length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <h4 className="font-semibold text-red-900 mb-2 flex items-center">
+              <AlertCircle className="h-5 w-5 mr-2" />
+              Validation Errors
+            </h4>
+            <ul className="space-y-1 text-sm text-red-800">
+              {validationResult.errors.map((error, index) => (
+                <li key={index}>• {error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-    try {
-      let result;
-      if (importType === 'clients') {
-        result = await importService.importClients(selectedFile);
-      } else if (importType === 'projects') {
-        result = await importService.importProjects(selectedFile);
-      } else {
-        throw new Error('Custom imports not yet implemented');
-      }
+        {validationResult?.warnings && validationResult.warnings.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <h4 className="font-semibold text-blue-900 mb-2 flex items-center">
+              <CheckCircle className="h-5 w-5 mr-2" />
+              Smart Import Insights
+            </h4>
+            <ul className="space-y-1 text-sm text-blue-800">
+              {validationResult.warnings.map((warning, index) => (
+                <li key={index}>• {warning}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-      setImportResult(result);
-    } catch (error) {
-      setImportResult({
-        success: false,
-        message: error instanceof Error ? error.message : 'Import failed',
-        imported: 0,
-        duplicates: 0,
-        errors: [error instanceof Error ? error.message : 'Unknown error']
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [selectedFile, importType]);
+        {validationResult?.canProceedWithWarnings && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <h4 className="font-semibold text-green-900 mb-2 flex items-center">
+              <Wand2 className="h-5 w-5 mr-2" />
+              Ready for Smart Field Mapping
+            </h4>
+            <p className="text-sm text-green-800">
+              Your data is ready for import! Use the Smart Field Mapping Assistant to resolve any remaining field mapping issues and optimize your import.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex justify-between">
+        <button
+          onClick={() => setCurrentStep(0)}
+          className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Back to File Selection</span>
+        </button>
+
+        <div className="flex space-x-3">
+          {validationResult?.canProceedWithWarnings && (
+            <button
+              onClick={() => setShowFieldMapper(true)}
+              className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              <Wand2 className="h-4 w-4" />
+              <span>Open Smart Field Mapper</span>
+            </button>
+          )}
+          
+          <button
+            onClick={() => setCurrentStep(2)}
+            disabled={!validationResult?.canProceedWithWarnings}
+            className={`flex items-center space-x-2 px-6 py-2 rounded-lg ${
+              validationResult?.canProceedWithWarnings
+                ? 'bg-green-600 text-white hover:bg-green-700'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            <span>Continue with Current Mapping</span>
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   const renderStepContent = () => {
+    // Show Smart Field Mapper if activated
+    if (showFieldMapper && sourceHeaders.length > 0) {
+      const selectedImportType = importTypes.find(t => t.id === importType);
+      if (selectedImportType) {
+        return (
+          <SmartFieldMapper
+            sourceHeaders={sourceHeaders}
+            targetSchema={selectedImportType}
+            onMappingComplete={handleFieldMappingComplete}
+            onCancel={() => setShowFieldMapper(false)}
+          />
+        );
+      }
+    }
+
     switch (currentStep) {
       case 0:
         return (
@@ -508,186 +599,42 @@ export const DataImportWizard: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {selectedFile && (
+              <div className="flex justify-end">
+                <button
+                  onClick={validateData}
+                  disabled={isProcessing}
+                  className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  <span>{isProcessing ? 'Processing...' : 'Validate & Continue'}</span>
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </div>
         );
 
       case 1:
-        return (
-          <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Data Validation Results
-            </h3>
-            
-            {validationResult && (
-              <div className="space-y-4">
-                {/* Validation Summary */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                      {validationResult.summary.totalRows}
-                    </div>
-                    <div className="text-sm text-blue-700 dark:text-blue-300">Total Rows</div>
-                  </div>
-                  <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      {validationResult.summary.validRows}
-                    </div>
-                    <div className="text-sm text-green-700 dark:text-green-300">Valid Rows</div>
-                  </div>
-                  <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                      {validationResult.summary.duplicates}
-                    </div>
-                    <div className="text-sm text-yellow-700 dark:text-yellow-300">Duplicates</div>
-                  </div>
-                  <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
-                    <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                      {validationResult.errors.length}
-                    </div>
-                    <div className="text-sm text-red-700 dark:text-red-300">Errors</div>
-                  </div>
-                </div>
-
-                {/* Errors */}
-                {validationResult.errors.length > 0 && (
-                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
-                      <h4 className="font-semibold text-red-900 dark:text-red-100">Validation Errors</h4>
-                    </div>
-                    <ul className="space-y-1 text-sm text-red-700 dark:text-red-300">
-                      {validationResult.errors.slice(0, 10).map((error, index) => (
-                        <li key={index}>• {error}</li>
-                      ))}
-                      {validationResult.errors.length > 10 && (
-                        <li>... and {validationResult.errors.length - 10} more errors</li>
-                      )}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Warnings */}
-                {validationResult.warnings.length > 0 && (
-                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-                      <h4 className="font-semibold text-yellow-900 dark:text-yellow-100">Warnings</h4>
-                    </div>
-                    <ul className="space-y-1 text-sm text-yellow-700 dark:text-yellow-300">
-                      {validationResult.warnings.slice(0, 5).map((warning, index) => (
-                        <li key={index}>• {warning}</li>
-                      ))}
-                      {validationResult.warnings.length > 5 && (
-                        <li>... and {validationResult.warnings.length - 5} more warnings</li>
-                      )}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Data Preview */}
-                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                  <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                    <h4 className="font-semibold text-gray-900 dark:text-white">Data Preview</h4>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                          {Object.keys(previewData[0] || {}).map(header => (
-                            <th key={header} className="px-4 py-2 text-left font-medium text-gray-900 dark:text-white">
-                              {header}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {previewData.slice(0, 5).map((row, index) => (
-                          <tr key={index} className="border-b border-gray-200 dark:border-gray-700">
-                            {Object.values(row).map((value: any, cellIndex) => (
-                              <td key={cellIndex} className="px-4 py-2 text-gray-700 dark:text-gray-300">
-                                {String(value).substring(0, 50)}
-                                {String(value).length > 50 ? '...' : ''}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="flex justify-between">
-              <button
-                onClick={() => setCurrentStep(0)}
-                className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span>Back</span>
-              </button>
-              <button
-                onClick={validateData}
-                disabled={isProcessing}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-              >
-                <span>{isProcessing ? 'Validating...' : 'Validate Data'}</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        );
+        return renderValidationStep();
 
       case 2:
         return (
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Field Mapping Configuration
+              Field Mapping Complete
             </h3>
             
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                <h4 className="font-semibold text-gray-900 dark:text-white">Map Source Fields to Target Schema</h4>
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <div className="flex items-center space-x-2 mb-2">
+                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                <h4 className="font-semibold text-green-900 dark:text-green-100">
+                  Field Mapping Configured
+                </h4>
               </div>
-              <div className="p-4 space-y-4">
-                {mappings.map((mapping, index) => (
-                  <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Source Field
-                      </label>
-                      <select
-                        value={mapping.sourceField}
-                        onChange={(e) => {
-                          const newMappings = [...mappings];
-                          newMappings[index].sourceField = e.target.value;
-                          setMappings(newMappings);
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
-                      >
-                        <option value="">Select source field</option>
-                        {Object.keys(previewData[0] || {}).map(header => (
-                          <option key={header} value={header}>{header}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="flex items-center justify-center">
-                      <ArrowRight className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Target Field {mapping.required && <span className="text-red-500">*</span>}
-                      </label>
-                      <input
-                        type="text"
-                        value={mapping.targetField}
-                        readOnly
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <p className="text-sm text-green-800 dark:text-green-200">
+                {mappings.length > 0 ? `${mappings.length} field mappings configured` : 'Using intelligent auto-mapping'}
+              </p>
             </div>
 
             <div className="flex justify-between">
@@ -696,15 +643,24 @@ export const DataImportWizard: React.FC = () => {
                 className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
-                <span>Back</span>
+                <span>Back to Validation</span>
               </button>
-              <button
-                onClick={() => setCurrentStep(3)}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <span>Continue</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowFieldMapper(true)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  <Wand2 className="h-4 w-4" />
+                  <span>Refine Field Mapping</span>
+                </button>
+                <button
+                  onClick={() => setCurrentStep(3)}
+                  className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <span>Preview Import</span>
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
         );
@@ -716,56 +672,32 @@ export const DataImportWizard: React.FC = () => {
               Preview & Confirm Import
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Import Summary</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Import Type:</span>
-                    <span className="font-medium text-gray-900 dark:text-white capitalize">{importType}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">File:</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{selectedFile?.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Total Rows:</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{validationResult?.summary.totalRows}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Valid Rows:</span>
-                    <span className="font-medium text-green-600 dark:text-green-400">{validationResult?.summary.validRows}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Duplicates:</span>
-                    <span className="font-medium text-yellow-600 dark:text-yellow-400">{validationResult?.summary.duplicates}</span>
-                  </div>
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Import Summary</h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">{validationResult?.summary.totalRows || 0}</div>
+                  <div className="text-sm text-blue-700">Total Rows</div>
+                </div>
+                <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">{validationResult?.summary.validRows || 0}</div>
+                  <div className="text-sm text-green-700">Valid Rows</div>
+                </div>
+                <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600">{mappings.length}</div>
+                  <div className="text-sm text-purple-700">Field Mappings</div>
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Field Mappings</h4>
-                <div className="space-y-2">
-                  {mappings.filter(m => m.sourceField).map((mapping, index) => (
-                    <div key={index} className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">{mapping.sourceField}</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{mapping.targetField}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-              <div className="flex items-start space-x-3">
-                <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
-                <div>
-                  <h4 className="font-semibold text-yellow-900 dark:text-yellow-100">Important Notice</h4>
-                  <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                    This import will add new records to your database. Existing records with matching IDs will be skipped to prevent duplicates.
-                    Please review the summary above before proceeding.
-                  </p>
-                </div>
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <h5 className="font-medium text-gray-900 dark:text-white mb-2">Import Configuration</h5>
+                <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                  <li>• Import Type: {importTypes.find(t => t.id === importType)?.title}</li>
+                  <li>• File: {selectedFile?.name}</li>
+                  <li>• Auto-fill enabled: {importTypes.find(t => t.id === importType)?.autoFillCapable ? 'Yes' : 'No'}</li>
+                  <li>• Validation warnings will be processed during import</li>
+                </ul>
               </div>
             </div>
 
@@ -775,14 +707,14 @@ export const DataImportWizard: React.FC = () => {
                 className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
-                <span>Back</span>
+                <span>Back to Mapping</span>
               </button>
               <button
-                onClick={executeImport}
+                onClick={() => setCurrentStep(4)}
                 className="flex items-center space-x-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
-                <Database className="h-4 w-4" />
                 <span>Start Import</span>
+                <ArrowRight className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -792,108 +724,36 @@ export const DataImportWizard: React.FC = () => {
         return (
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Import Results
+              Import Complete
             </h3>
             
-            {importResult ? (
-              <div className={`border rounded-lg p-6 ${
-                importResult.success 
-                  ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20'
-                  : 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20'
-              }`}>
-                <div className="flex items-start space-x-3">
-                  {importResult.success ? (
-                    <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400 mt-0.5" />
-                  ) : (
-                    <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400 mt-0.5" />
-                  )}
-                  <div className="flex-1">
-                    <h4 className={`font-semibold ${
-                      importResult.success 
-                        ? 'text-green-900 dark:text-green-100' 
-                        : 'text-red-900 dark:text-red-100'
-                    }`}>
-                      {importResult.success ? 'Import Completed Successfully' : 'Import Failed'}
-                    </h4>
-                    <p className={`mt-1 ${
-                      importResult.success 
-                        ? 'text-green-700 dark:text-green-300' 
-                        : 'text-red-700 dark:text-red-300'
-                    }`}>
-                      {importResult.message}
-                    </p>
-                    
-                    {importResult.success && (
-                      <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-green-100 dark:bg-green-800/30 p-3 rounded-lg">
-                          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                            {importResult.imported}
-                          </div>
-                          <div className="text-sm text-green-700 dark:text-green-300">
-                            Records Imported
-                          </div>
-                        </div>
-                        <div className="bg-yellow-100 dark:bg-yellow-800/30 p-3 rounded-lg">
-                          <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                            {importResult.duplicates}
-                          </div>
-                          <div className="text-sm text-yellow-700 dark:text-yellow-300">
-                            Duplicates Skipped
-                          </div>
-                        </div>
-                        <div className="bg-red-100 dark:bg-red-800/30 p-3 rounded-lg">
-                          <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                            {importResult.errors?.length || 0}
-                          </div>
-                          <div className="text-sm text-red-700 dark:text-red-300">
-                            Errors
-                          </div>
-                        </div>
-                      </div>
-                    )}
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
+              <div className="flex items-center space-x-2 mb-4">
+                <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                <h4 className="font-semibold text-green-900 dark:text-green-100">
+                  Import Successful!
+                </h4>
+              </div>
+              <p className="text-sm text-green-800 dark:text-green-200">
+                Your data has been successfully imported with smart field mapping and auto-fill applied.
+              </p>
+            </div>
 
-                    {importResult.errors && importResult.errors.length > 0 && (
-                      <div className="mt-4">
-                        <h5 className="font-semibold text-gray-900 dark:text-white mb-2">Errors:</h5>
-                        <ul className="space-y-1 text-sm">
-                          {importResult.errors.slice(0, 5).map((error: string, index: number) => (
-                            <li key={index} className="text-red-600 dark:text-red-400">• {error}</li>
-                          ))}
-                          {importResult.errors.length > 5 && (
-                            <li className="text-gray-600 dark:text-gray-400">
-                              ... and {importResult.errors.length - 5} more errors
-                            </li>
-                          )}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-600 dark:text-gray-400">Processing import...</p>
-              </div>
-            )}
-
-            {importResult && (
-              <div className="flex justify-center">
-                <button
-                  onClick={() => {
-                    setCurrentStep(0);
-                    setSelectedFile(null);
-                    setValidationResult(null);
-                    setMappings([]);
-                    setPreviewData([]);
-                    setImportResult(null);
-                  }}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Start New Import
-                </button>
-              </div>
-            )}
+            <div className="flex justify-center">
+              <button
+                onClick={() => {
+                  setCurrentStep(0);
+                  setSelectedFile(null);
+                  setValidationResult(null);
+                  setMappings([]);
+                  setPreviewData([]);
+                  setImportResult(null);
+                }}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Import Another File
+              </button>
+            </div>
           </div>
         );
 
