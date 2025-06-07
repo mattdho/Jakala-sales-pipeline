@@ -15,7 +15,7 @@ export const ListView: React.FC<ListViewProps> = ({
   onEditJob
 }) => {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div>
         <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Opportunities</h3>
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">

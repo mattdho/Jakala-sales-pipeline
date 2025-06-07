@@ -148,9 +148,9 @@ export const KanbanView: React.FC<KanbanViewProps> = ({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Opportunities Pipeline */}
-      <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6">
+        <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-4 sm:p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             Opportunities Pipeline
@@ -164,7 +164,7 @@ export const KanbanView: React.FC<KanbanViewProps> = ({
           </button>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           {OPPORTUNITY_STAGES.map((stage) => {
             const stageOpportunities = opportunities.filter(opp => opp.stage === stage.id);
             const stageValue = stageOpportunities.reduce((sum, opp) => sum + opp.value, 0);
@@ -209,14 +209,14 @@ export const KanbanView: React.FC<KanbanViewProps> = ({
 
       {/* Connection Arrow */}
       <div className="flex items-center justify-center">
-        <div className="flex items-center space-x-4 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full text-white">
+        <div className="flex items-center space-x-4 px-4 sm:px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full text-white">
           <span className="text-sm font-medium">Auto-creates Job when Ready for Proposal</span>
           <ArrowRight className="h-4 w-4" />
         </div>
       </div>
 
       {/* Jobs Pipeline */}
-      <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6">
+        <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-4 sm:p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             Jobs Pipeline
@@ -230,7 +230,7 @@ export const KanbanView: React.FC<KanbanViewProps> = ({
           </button>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 md:gap-6">
           {JOB_STAGES.map((stage) => {
             const stageJobs = jobs.filter(job => job.stage === stage.id);
             const stageValue = stageJobs.reduce((sum, job) => sum + job.value, 0);
