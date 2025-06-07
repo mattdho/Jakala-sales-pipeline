@@ -43,6 +43,8 @@ export const useUpdateOpportunity = () => {
       queryClient.invalidateQueries({ queryKey: ['opportunities'] });
       queryClient.invalidateQueries({ queryKey: ['opportunity', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['opportunity-metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['job-metrics'] });
     },
   });
 };
