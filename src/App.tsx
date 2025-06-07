@@ -17,7 +17,7 @@ import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
 import { CommandPalette } from './components/ui/CommandPalette';
 import { MetricsGrid } from './components/dashboard/MetricsGrid';
-import { DualPipelineView } from './components/pipeline/DualPipelineView';
+import { PipelineView } from './components/pipeline/PipelineView';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
 import { OpportunityModal } from './components/modals/OpportunityModal';
 import { JobModal } from './components/modals/JobModal';
@@ -41,7 +41,9 @@ const AppContent: React.FC = () => {
     setOpportunityModalOpen,
     setEditingOpportunity,
     setJobModalOpen,
-    setEditingJob
+    setEditingJob,
+    metrics,
+    setMetrics
   } = useStore();
   
   useKeyboardShortcuts();
@@ -87,6 +89,18 @@ const AppContent: React.FC = () => {
     conversion_rate: 75.0, // Calculate this based on opportunities -> jobs conversion
     pipeline_velocity: 45 // Calculate this based on average time to close
   };
+
+  useEffect(() => {
+    setMetrics(combinedMetrics);
+  }, [
+    opportunityMetrics?.data?.total_pipeline_value,
+    jobMetrics?.data?.total_job_value,
+    opportunityMetrics?.data?.weighted_pipeline_value,
+    opportunityMetrics?.data?.total_opportunities,
+    jobMetrics?.data?.active_jobs,
+    opportunityMetrics?.data?.win_rate,
+    opportunityMetrics?.data?.avg_deal_size
+  ]);
 
   const isLoading = opportunitiesLoading || jobsLoading;
   const hasError = opportunitiesError || jobsError;
@@ -134,14 +148,14 @@ const AppContent: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <MetricsGrid metrics={combinedMetrics} />
+            <MetricsGrid metrics={metrics || combinedMetrics} />
             
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <LoadingSpinner size="lg" />
               </div>
             ) : (
-              <DualPipelineView
+              <PipelineView
                 opportunities={opportunitiesData?.data || []}
                 jobs={jobsData?.data || []}
                 onCreateOpportunity={handleCreateOpportunity}
