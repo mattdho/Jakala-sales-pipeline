@@ -82,7 +82,7 @@ export const useAuth = () => {
           if (session?.user) {
             const { profile: userProfile, error: profileError } = await withTimeout(
               getCurrentUserProfile(),
-              8000 // Slightly shorter timeout for state changes
+              15000 // Increased timeout from 8000ms to 15000ms for state changes
             );
             
             if (profileError) {
@@ -116,7 +116,7 @@ export const useAuth = () => {
       try {
         const { profile: userProfile, error: profileError } = await withTimeout(
           getCurrentUserProfile(),
-          8000
+          15000 // Increased timeout from 8000ms to 15000ms for profile refresh
         );
         
         if (profileError) {
