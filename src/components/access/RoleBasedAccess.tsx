@@ -336,7 +336,7 @@ export const RoleBasedAccess: React.FC = () => {
                     {selectedRole.permissions.map(permissionId => {
                       if (permissionId === '*') {
                         return (
-                          <div key="all" className="flex items-center space-x-2 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                          <div key="all\" className="flex items-center space-x-2 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                             <Crown className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                             <span className="text-sm font-medium text-purple-900 dark:text-purple-100">
                               All Permissions
