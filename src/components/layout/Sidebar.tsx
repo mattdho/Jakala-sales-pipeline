@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Home, Briefcase, Users, BarChart3, Calendar, 
-  FileText, Settings, ChevronRight, Target, Database
+  FileText, Settings, ChevronRight, Target, Database,
+  Upload, Shield, Grid
 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { INDUSTRY_GROUPS } from '../../constants';
@@ -19,7 +20,7 @@ interface SidebarItem {
 
 export const Sidebar: React.FC = () => {
   const { sidebarOpen, viewMode, setViewMode, filters, setFilters } = useStore();
-  const [expandedGroups, setExpandedGroups] = React.useState<string[]>(['main']);
+  const [expandedGroups, setExpandedGroups] = React.useState<string[]>(['main', 'enterprise']);
 
   const sidebarItems: SidebarItem[] = [
     {
@@ -43,6 +44,17 @@ export const Sidebar: React.FC = () => {
         { id: 'team', name: 'Team', icon: <Users className="h-4 w-4" /> },
         { id: 'documents', name: 'Documents', icon: <FileText className="h-4 w-4" /> },
         { id: 'data-import', name: 'Data Import', icon: <Database className="h-4 w-4" /> }
+      ]
+    },
+    {
+      id: 'enterprise',
+      name: 'Enterprise',
+      icon: <Shield className="h-5 w-5" />,
+      children: [
+        { id: 'enterprise', name: 'Enterprise Dashboard', icon: <Grid className="h-4 w-4" /> },
+        { id: 'enterprise-import', name: 'Advanced Import', icon: <Upload className="h-4 w-4" /> },
+        { id: 'enterprise-dashboard', name: 'Dashboard Builder', icon: <BarChart3 className="h-4 w-4" /> },
+        { id: 'enterprise-access', name: 'Access Control', icon: <Shield className="h-4 w-4" /> }
       ]
     }
   ];
@@ -101,23 +113,30 @@ export const Sidebar: React.FC = () => {
                       transition={{ duration: 0.2 }}
                       className="ml-4 mt-2 space-y-1 overflow-hidden"
                     >
-                      {group.children.map((item) => (
-                        <Link
-                          to={item.id === 'dashboard' ? '/' : `/${item.id}`}
-                          key={item.id}
-                          className="flex items-center justify-between w-full px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200 rounded-lg transition-colors"
-                        >
-                          <div className="flex items-center space-x-3">
-                            {item.icon}
-                            <span>{item.name}</span>
-                          </div>
-                          {item.badge && (
-                            <span className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded-full">
-                              {item.badge}
-                            </span>
-                          )}
-                        </Link>
-                      ))}
+                      {group.children.map((item) => {
+                        // Special handling for enterprise items
+                        const path = group.id === 'enterprise' 
+                          ? (item.id === 'enterprise' ? '/enterprise' : '/enterprise')
+                          : (item.id === 'dashboard' ? '/' : `/${item.id}`);
+                        
+                        return (
+                          <Link
+                            to={path}
+                            key={item.id}
+                            className="flex items-center justify-between w-full px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200 rounded-lg transition-colors"
+                          >
+                            <div className="flex items-center space-x-3">
+                              {item.icon}
+                              <span>{item.name}</span>
+                            </div>
+                            {item.badge && (
+                              <span className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded-full">
+                                {item.badge}
+                              </span>
+                            )}
+                          </Link>
+                        );
+                      })}
                     </motion.div>
                   )}
                 </AnimatePresence>

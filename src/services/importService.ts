@@ -1,5 +1,5 @@
 import { supabase, logActivity, handleSupabaseError } from '../lib/supabase';
-import { INDUSTRY_GROUPS } from '../constants';
+import { enterpriseImportService } from './enterpriseImportService';
 
 interface ImportResult {
   success: boolean;
@@ -15,7 +15,7 @@ const INDUSTRY_GROUP_MAPPING: Record<string, string> = {
   'HSNE': 'HSME', // Map to existing HSME group
   'DXP': 'Services', // Map DXP to Services
   'TLCG': 'Consumer', // Map to Consumer
-  'New Business': 'Services'
+  'NEW_BIZ': 'Services'
 };
 
 // Team member to industry group mapping
@@ -42,60 +42,12 @@ const TEAM_INDUSTRY_MAPPING: Record<string, string[]> = {
 export const importService = {
   // Parse CSV file and return preview data
   async previewCsv(file: File, maxRows: number = 5): Promise<any[]> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const csv = e.target?.result as string;
-          const lines = csv.split('\n').filter(line => line.trim());
-          const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-          
-          const data = lines.slice(1, maxRows + 1).map(line => {
-            const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
-            const row: any = {};
-            headers.forEach((header, index) => {
-              row[header] = values[index] || '';
-            });
-            return row;
-          });
-          
-          resolve(data);
-        } catch (error) {
-          reject(error);
-        }
-      };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsText(file);
-    });
+    return enterpriseImportService.previewFile(file, maxRows);
   },
 
   // Parse full CSV file
   async parseCsv(file: File): Promise<any[]> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const csv = e.target?.result as string;
-          const lines = csv.split('\n').filter(line => line.trim());
-          const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-          
-          const data = lines.slice(1).map(line => {
-            const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
-            const row: any = {};
-            headers.forEach((header, index) => {
-              row[header] = values[index] || '';
-            });
-            return row;
-          }).filter(row => Object.values(row).some(val => val !== ''));
-          
-          resolve(data);
-        } catch (error) {
-          reject(error);
-        }
-      };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsText(file);
-    });
+    return enterpriseImportService.parseFullFile(file);
   },
 
   // Import client accounts from CSV
@@ -363,31 +315,6 @@ export const importService = {
 
   // Download CSV templates
   downloadTemplate(type: 'clients' | 'projects') {
-    let csvContent = '';
-    let filename = '';
-
-    if (type === 'clients') {
-      csvContent = [
-        'name,legal_name,industry,industry_group,billing_address,payment_terms',
-        'Example Corp,Example Corporation Inc,Technology,TMT,"123 Main St, City, State 12345",Net 30',
-        'Sample University,Sample University,Higher Education,HSME,"456 College Ave, City, State 67890",Net 45'
-      ].join('\n');
-      filename = 'client_import_template.csv';
-    } else {
-      csvContent = [
-        'client_name,project_name,client_short,project_short,unique_id,start_quarter,end_quarter,is_new_business',
-        'Example Corp,Website Redesign,EXCORP,WR,EXCORPWR001,Q125,Q225,false',
-        'Sample University,CMS Migration,SAMPU,CM,SAMPUCM002,Q225,Q325,true'
-      ].join('\n');
-      filename = 'project_import_template.csv';
-    }
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
+    return enterpriseImportService.downloadTemplate(type);
   }
 };
