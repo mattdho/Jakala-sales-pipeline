@@ -111,17 +111,17 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics }) => {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
       {metricCards.map((metric, index) => (
         <motion.div
           key={metric.id}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1 }}
-          className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-6 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-gray-900/50 transition-all duration-300"
+          className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-4 sm:p-6 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-gray-900/50 transition-all duration-300"
         >
-          <div className="flex items-center justify-between mb-4">
-            <div className={`p-3 rounded-xl ${getColorClasses(metric.color)}`}>
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className={`p-2 sm:p-3 rounded-xl ${getColorClasses(metric.color)}`}>
               {metric.icon}
             </div>
             {metric.change !== undefined && (
