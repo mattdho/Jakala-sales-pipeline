@@ -1,10 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Plus, Save, Eye, Settings, Filter, BarChart3, 
-  PieChart, LineChart, Table, Calendar, Users,
-  DragDropContext, Droppable, Draggable
-} from 'lucide-react';
+import { Plus, Save, Eye, Settings, Filter, BarChart3, PieChart, LineChart, Table, Calendar, Users, Contrast as DragDropContext, Droplet as Droppable, Cable as Draggable } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 
 interface DashboardWidget {
