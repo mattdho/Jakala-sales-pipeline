@@ -50,7 +50,7 @@ export const userService = {
     }
   },
 
-  async update(id: string, updates: UserUpdate) => {
+  async update(id: string, updates: UserUpdate) {
     try {
       // Check if current user can update this user
       const { user: currentUser } = await supabase.auth.getUser();
@@ -80,7 +80,7 @@ export const userService = {
     }
   },
 
-  async getActivityLogs(userId: string, limit: number = 50) => {
+  async getActivityLogs(userId: string, limit: number = 50) {
     try {
       const { data, error } = await supabase
         .from('activity_logs')
