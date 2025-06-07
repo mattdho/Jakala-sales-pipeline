@@ -714,42 +714,87 @@ export class EnterpriseImportService {
 
   downloadTemplate(schemaName: string): void {
     const schema = this.schemas.get(schemaName);
-    if (!schema) {
-      throw new Error(`Unknown schema: ${schemaName}`);
-    }
+    if (!schema) return;
 
     let csvContent = '';
-    let filename = '';
+    let headers: string[] = [];
+    let sampleData: string[] = [];
 
     if (schemaName === 'clients') {
-      csvContent = [
-        'name,legal_name,industry,industry_group,billing_address,payment_terms',
-        'Example Corp,Example Corporation Inc,Technology,TMT,"123 Main St, City, State 12345",Net 30',
-        'Sample University,Sample University,Higher Education,HSME,"456 College Ave, City, State 67890",Net 45'
-      ].join('\n');
-      filename = 'client_import_template.csv';
+      headers = [
+        'name', // REQUIRED
+        'legal_name', // Optional - will auto-fill from name
+        'client_short', // Optional - for abbreviations
+        'platform_name', // Optional - display name
+        'industry', // Optional - will auto-detect
+        'industry_group', // Optional - will auto-assign (SMBA/HSNE/DXP/TLCG/NEW_BUSINESS)
+        'payment_terms', // Optional - defaults to Net 30
+        'billing_address' // Optional
+      ];
+      sampleData = [
+        'Acme Corporation', // Only this is required!
+        'Acme Corp LLC', // Will auto-fill if empty
+        'ACME', // Company abbreviation
+        'ACME CORP', // Display name
+        'Technology', // Will auto-detect if empty
+        'DXP', // Will auto-assign if empty
+        'Net 30', // Will default if empty
+        '123 Main St, Anytown, ST 12345' // Optional
+      ];
     } else if (schemaName === 'projects') {
-      csvContent = [
-        'client_name,project_name,client_short,project_short,unique_id,start_quarter,end_quarter,is_new_business',
-        'Example Corp,Website Redesign,EXCORP,WR,EXCORPWR001,Q125,Q225,false',
-        'Sample University,CMS Migration,SAMPU,CM,SAMPUCM002,Q225,Q325,true'
-      ].join('\n');
-      filename = 'project_import_template.csv';
-    } else if (schemaName === 'users') {
-      csvContent = [
-        'name,email,role,industry_groups',
-        'John Doe,john.doe@company.com,client_leader,"[""TMT"", ""Services""]"',
-        'Jane Smith,jane.smith@company.com,account_owner,"[""Consumer""]"'
-      ].join('\n');
-      filename = 'users_import_template.csv';
+      headers = [
+        'name', // REQUIRED - Project name
+        'client_name', // REQUIRED - Must match a client
+        'unique_id', // Optional - will auto-generate
+        'project_name', // Optional - project display name
+        'client_short', // Optional - client abbreviation
+        'project_short', // Optional - project abbreviation
+        'is_new_business', // Optional - true/false
+        'start_quarter', // Optional - Q1 2024 format
+        'end_quarter' // Optional - Q2 2024 format
+      ];
+      sampleData = [
+        'Website Redesign Project', // Required
+        'Acme Corporation', // Required - must match client name
+        'WEB2024-001', // Will auto-generate if empty
+        'Acme Website Redesign', // Optional
+        'ACME', // Optional
+        'web-redesign', // Optional
+        'false', // Optional
+        'Q1 2024', // Optional
+        'Q2 2024' // Optional
+      ];
+    } else {
+      headers = ['email', 'name', 'role', 'industry_groups'];
+      sampleData = ['john.doe@company.com', 'John Doe', 'client_leader', 'SMBA,DXP'];
+    }
+
+    // Create CSV with headers and sample data
+    csvContent = headers.join(',') + '\n';
+    csvContent += sampleData.join(',') + '\n';
+    
+    // Add helpful comments as additional rows
+    if (schemaName === 'clients') {
+      csvContent += '\n# NOTES:\n';
+      csvContent += '# - Only "name" (company name) is required\n';
+      csvContent += '# - All other fields will be auto-filled with intelligent defaults\n';
+      csvContent += '# - Industry groups: SMBA, HSNE, DXP, TLCG, NEW_BUSINESS\n';
+      csvContent += '# - Payment terms: Net 15, Net 30, Net 45, Net 60, Due on Receipt\n';
+    } else if (schemaName === 'projects') {
+      csvContent += '\n# NOTES:\n';
+      csvContent += '# - Only "name" and "client_name" are required\n';
+      csvContent += '# - client_name must exactly match an existing client\n';
+      csvContent += '# - unique_id will be auto-generated if not provided\n';
     }
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${schemaName}_template.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     URL.revokeObjectURL(url);
   }
 

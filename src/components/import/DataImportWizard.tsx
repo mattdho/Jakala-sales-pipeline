@@ -82,26 +82,29 @@ export const DataImportWizard: React.FC = () => {
     {
       id: 'clients',
       title: 'Client Accounts',
-      description: 'Import client account information',
+      description: 'Import client account information - Only company name required!',
       icon: Building,
-      requiredFields: ['name', 'legal_name', 'industry', 'industry_group'],
-      optionalFields: ['billing_address', 'payment_terms', 'account_owner_id']
+      requiredFields: ['name'],
+      optionalFields: ['legal_name', 'client_short', 'platform_name', 'industry', 'industry_group', 'payment_terms', 'billing_address'],
+      autoFillCapable: true
     },
     {
       id: 'projects',
-      title: 'Project Data',
-      description: 'Import project and job information',
+      title: 'Project Data', 
+      description: 'Import project and job information - Flexible field mapping',
       icon: Briefcase,
-      requiredFields: ['client_name', 'project_name', 'unique_id'],
-      optionalFields: ['start_quarter', 'end_quarter', 'is_new_business']
+      requiredFields: ['name', 'client_name'],
+      optionalFields: ['unique_id', 'project_name', 'client_short', 'project_short', 'start_quarter', 'end_quarter', 'is_new_business'],
+      autoFillCapable: true
     },
     {
       id: 'custom',
       title: 'Custom Import',
-      description: 'Define custom import schema',
+      description: 'Define custom import schema with intelligent field detection',
       icon: Database,
       requiredFields: [],
-      optionalFields: []
+      optionalFields: [],
+      autoFillCapable: false
     }
   ];
 
@@ -165,55 +168,127 @@ export const DataImportWizard: React.FC = () => {
       let duplicates = 0;
       let missingFields = 0;
 
-      // Check required fields
+      // Get available headers from the file
       const headers = Object.keys(fullData[0] || {});
-      const missingRequired = selectedImportType.requiredFields.filter(
-        field => !headers.some(h => h.toLowerCase().includes(field.toLowerCase()))
-      );
+      
+      // New simplified validation - only check for truly required fields
+      const missingRequired = selectedImportType.requiredFields.filter(field => {
+        // Try to find the field or similar variations
+        const foundField = headers.find(h => {
+          const lowerH = h.toLowerCase();
+          const lowerField = field.toLowerCase();
+          
+          // Exact match or common variations
+          return lowerH === lowerField || 
+                 lowerH.includes(lowerField) || 
+                 lowerField.includes(lowerH) ||
+                 (field === 'name' && (lowerH.includes('company') || lowerH.includes('client') || lowerH.includes('organization'))) ||
+                 (field === 'client_name' && (lowerH.includes('client') || lowerH.includes('company')));
+        });
+        return !foundField;
+      });
 
+      // Only show errors for truly missing required fields
       if (missingRequired.length > 0) {
-        errors.push(`Missing required fields: ${missingRequired.join(', ')}`);
+        errors.push(`Missing required columns: ${missingRequired.join(', ')}`);
+        errors.push('Tip: Required fields can have alternative names like "company_name" instead of "name"');
       }
 
-      // Validate each row
+      // Enhanced validation with auto-fill messaging
       const seenIds = new Set();
+      let autoFilledRows = 0;
+      
       fullData.forEach((row, index) => {
         const rowNumber = index + 2; // Account for header row
         let hasErrors = false;
+        let hasAutoFill = false;
 
-        // Check for required field values
+        // Check for required field values with intelligent field mapping
         selectedImportType.requiredFields.forEach(field => {
-          const value = row[field] || row[headers.find(h => h.toLowerCase().includes(field.toLowerCase())) || ''];
+          // Try multiple field name variations
+          const possibleFields = [
+            field,
+            ...headers.filter(h => {
+              const lowerH = h.toLowerCase();
+              const lowerField = field.toLowerCase();
+              return lowerH.includes(lowerField) || lowerField.includes(lowerH);
+            })
+          ];
+          
+          let value = null;
+          for (const possibleField of possibleFields) {
+            value = row[possibleField];
+            if (value && value.toString().trim() !== '') break;
+          }
+
           if (!value || value.toString().trim() === '') {
-            errors.push(`Row ${rowNumber}: Missing value for required field '${field}'`);
-            hasErrors = true;
-            missingFields++;
+            // Special handling for company name - try even more variations
+            if (field === 'name') {
+              const nameVariations = headers.filter(h => 
+                h.toLowerCase().includes('company') || 
+                h.toLowerCase().includes('organization') ||
+                h.toLowerCase().includes('business') ||
+                h.toLowerCase().includes('client')
+              );
+              
+              for (const variation of nameVariations) {
+                value = row[variation];
+                if (value && value.toString().trim() !== '') {
+                  hasAutoFill = true;
+                  break;
+                }
+              }
+            }
+            
+            if (!value || value.toString().trim() === '') {
+              errors.push(`Row ${rowNumber}: Missing required field '${field}'`);
+              hasErrors = true;
+              missingFields++;
+            }
           }
         });
 
+        // Show auto-fill capabilities for optional fields
+        if (selectedImportType.autoFillCapable && !hasErrors) {
+          const companyName = row.name || row.company_name || row.client_name || row.organization || '';
+          
+          if (companyName && (!row.legal_name || !row.industry || !row.industry_group)) {
+            hasAutoFill = true;
+          }
+        }
+
+        if (hasAutoFill) {
+          autoFilledRows++;
+        }
+
         // Check for duplicates (based on unique_id or name)
-        const uniqueField = row.unique_id || row.id || row.name || row.client_name;
-        if (uniqueField && seenIds.has(uniqueField)) {
-          warnings.push(`Row ${rowNumber}: Duplicate entry '${uniqueField}'`);
+        const uniqueField = row.unique_id || row.id || row.name || row.client_name || row.company_name;
+        if (uniqueField && seenIds.has(uniqueField.toString().toLowerCase())) {
+          warnings.push(`Row ${rowNumber}: Duplicate entry '${uniqueField}' (will be skipped)`);
           duplicates++;
         } else if (uniqueField) {
-          seenIds.add(uniqueField);
+          seenIds.add(uniqueField.toString().toLowerCase());
         }
 
         if (!hasErrors) validRows++;
       });
 
-      // Data type validation
-      if (importType === 'projects') {
-        fullData.forEach((row, index) => {
-          if (row.is_new_business && !['true', 'false', '1', '0', 'yes', 'no'].includes(row.is_new_business.toLowerCase())) {
-            warnings.push(`Row ${index + 2}: Invalid boolean value for 'is_new_business'`);
-          }
-        });
+      // Add positive messaging about auto-fill capabilities
+      if (selectedImportType.autoFillCapable && autoFilledRows > 0) {
+        warnings.push(`✨ Auto-fill will populate missing fields for ${autoFilledRows} rows based on company name analysis`);
       }
 
-      const result: ValidationResult = {
-        isValid: errors.length === 0,
+      if (selectedImportType.id === 'clients') {
+        warnings.push('💡 Industry groups will be intelligently assigned: SMBA, HSNE, DXP, TLCG, or NEW_BUSINESS');
+        warnings.push('💡 Legal names, industries, and other fields will be auto-filled from company names');
+      }
+
+      if (validRows > 0 && errors.length === 0) {
+        warnings.push(`✅ ${validRows} rows ready for import with intelligent field mapping`);
+      }
+
+      setValidationResult({
+        isValid: errors.length === 0 && validRows > 0,
         errors,
         warnings,
         summary: {
@@ -222,19 +297,20 @@ export const DataImportWizard: React.FC = () => {
           duplicates,
           missingFields
         }
-      };
+      });
 
-      setValidationResult(result);
-      
-      if (result.isValid) {
+      if (errors.length === 0) {
+        // Auto-generate mappings for successful validation
+        const generatedMappings = generateMappings(headers, selectedImportType);
+        setMappings(generatedMappings);
         setCurrentStep(2);
-        generateMappings(headers, selectedImportType);
       }
+
     } catch (error) {
       console.error('Validation error:', error);
       setValidationResult({
         isValid: false,
-        errors: [error instanceof Error ? error.message : 'Validation failed'],
+        errors: [error instanceof Error ? error.message : 'Unknown validation error'],
         warnings: [],
         summary: { totalRows: 0, validRows: 0, duplicates: 0, missingFields: 0 }
       });
@@ -262,7 +338,7 @@ export const DataImportWizard: React.FC = () => {
       }
     });
 
-    setMappings(mappings);
+    return mappings;
   };
 
   const executeImport = useCallback(async () => {
@@ -336,6 +412,48 @@ export const DataImportWizard: React.FC = () => {
                 ))}
               </div>
             </div>
+
+            {/* New Simplified Validation Info Banner */}
+            {importType && (
+              <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border border-green-200 dark:border-green-800 rounded-xl p-6">
+                <div className="flex items-start space-x-3">
+                  <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2">
+                      ✨ Enhanced Import with Smart Auto-Fill
+                    </h4>
+                    <div className="text-sm text-green-800 dark:text-green-200 space-y-2">
+                      {importType === 'clients' && (
+                        <>
+                          <p><strong>Only company name is required!</strong> All other fields will be intelligently auto-filled:</p>
+                          <ul className="list-disc ml-4 space-y-1">
+                            <li>Legal names auto-filled from company names</li>
+                            <li>Industries auto-detected (Technology, Healthcare, Education, etc.)</li>
+                            <li>Industry groups auto-assigned (SMBA, HSNE, DXP, TLCG, NEW_BUSINESS)</li>
+                            <li>Payment terms default to Net 30</li>
+                            <li>Alternative field names automatically recognized (company_name, organization, etc.)</li>
+                          </ul>
+                        </>
+                      )}
+                      {importType === 'projects' && (
+                        <>
+                          <p><strong>Only project name and client name are required!</strong> Other fields auto-fill:</p>
+                          <ul className="list-disc ml-4 space-y-1">
+                            <li>Unique IDs auto-generated if not provided</li>
+                            <li>Client names matched against existing accounts</li>
+                            <li>Project codes and abbreviations auto-created</li>
+                            <li>Alternative field names automatically recognized</li>
+                          </ul>
+                        </>
+                      )}
+                      <p className="font-medium mt-3">
+                        💡 Your CSV can have any column names - our smart mapping will find the right fields!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* File Upload */}
             <div>
