@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Home, Briefcase, Users, BarChart3, Calendar, 
-  FileText, Settings, ChevronRight, Target
+  FileText, Settings, ChevronRight, Target, Database
 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { INDUSTRY_GROUPS } from '../../constants';
@@ -41,7 +41,8 @@ export const Sidebar: React.FC = () => {
       children: [
         { id: 'accounts', name: 'Accounts', icon: <Users className="h-4 w-4" /> },
         { id: 'team', name: 'Team', icon: <Users className="h-4 w-4" /> },
-        { id: 'documents', name: 'Documents', icon: <FileText className="h-4 w-4" /> }
+        { id: 'documents', name: 'Documents', icon: <FileText className="h-4 w-4" /> },
+        { id: 'data-import', name: 'Data Import', icon: <Database className="h-4 w-4" /> }
       ]
     }
   ];

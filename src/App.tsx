@@ -13,6 +13,7 @@ import Team from './pages/Team';
 import Accounts from './pages/Accounts';
 import Documents from './pages/Documents';
 import SettingsPage from './pages/Settings';
+import DataImport from './pages/DataImport';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,6 +40,7 @@ const App: React.FC = () => (
           <Route path="/accounts" element={<Accounts />} />
           <Route path="/documents" element={<Documents />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/data-import" element={<DataImport />} />
         </Routes>
       </AuthProvider>
     </QueryClientProvider>
