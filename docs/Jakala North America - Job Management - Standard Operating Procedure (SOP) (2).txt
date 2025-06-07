@@ -1,0 +1,258 @@
+﻿Jakala North America – Job Management SOP
+(CURRENT VERSION 5/21/2025)
+________________
+
+
+1. What This SOP Is For
+2. Who Should Use This SOP
+3. Key Tools You’ll Use
+4. Roles & Responsibilities
+Industry Leader
+Account Owner
+Client Leader
+5. When to Create Opportunities & Jobs
+Create an Opportunity When:
+Create a Job When:
+6. Standardized Workflow
+A. Creating and Managing Opportunities
+B. Creating and Managing Jobs
+C. Marking as Won or Lost
+Marking as Won:
+Marking as Lost / No Bid:
+D. Uploading Documentation
+E. Invoicing Process for Completed Work
+A. Prerequisites
+B. Monthly Workflow
+C. Invoice Submission Checklist
+F. Closing Out Completed Jobs
+A. 🔁 Automated Closure Policy
+B. 🛠 Manual Closure by Admins
+C. What You Should Do if a Job Was Missed
+D. Final Lock Notice
+7. Naming Conventions & Jakala Project Name Generator
+8. Compliance & Reporting
+Escalation Contacts:
+9. Custom Views & Reports
+9.1 Recommended Custom List Views
+10. Industry Categories
+11. Continuous Improvement & Support
+
+
+________________
+
+
+1. What This SOP Is For
+This SOP ensures consistent tracking and management of business development activities and project work across Salesforce, Metric.ai, Apollo.io, and SAP. It improves transparency, automates workflows, and guarantees complete data alignment for operational excellence.
+________________
+
+
+2. Who Should Use This SOP
+* Industry Leaders: Strategic oversight, no operational action required.
+* Account Owners: Manage client accounts and linked Opportunities.
+* Client Leaders: Oversee full lifecycle of Opportunities and Jobs.
+________________
+
+
+3. Key Tools You’ll Use
+* Salesforce: Core CRM for tracking all Opportunities and Jobs.
+* Metric.ai: Execution, invoicing, and financial visibility.
+* Apollo.io: Communication and outreach tracking.
+* SAP: Official invoicing and client payment processing.
+* Monday.com: Project collaboration integrated from Salesforce.
+________________
+
+
+4. Roles & Responsibilities
+Industry Leader
+* Oversees vertical strategy.
+* No hands-on work with Opportunities or Jobs.
+Account Owner
+* Maintains Accounts and Opportunities in Salesforce.
+* Ensures Metric projects link to Salesforce records.
+Client Leader
+* Owns Job management in Salesforce and Metric.
+* Updates project and financial statuses.
+________________
+
+
+5. When to Create Opportunities & Jobs
+Create an Opportunity When:
+* Sending a sales-focused email or LinkedIn message
+* Meeting a prospect at an event and there being any potential business opportunity to pursue.
+* Otherwise receiving prospective lead information or RFP information through research or otherwise that is relevant enough to pursue and not ignore.
+Rule: Any major sign of sales intent = create an Opportunity
+Create a Job When:
+* Starting a proposal, brief, or presentation
+* Opportunity enters "Go Till No" or "Go" stage
+* You have engaged a member of the pre-sales team regarding this opportunity
+________________
+
+
+6. Standardized Workflow
+A. Creating and Managing Opportunities
+* Complete mandatory fields in Salesforce:
+   * Name, Company, Expected Confirmation Date, Value
+* Use appropriate Opportunity stages:
+   * Exploration → Ready for Proposal → Closed - Won/Lost
+B. Creating and Managing Jobs
+* Automatically created by triggering "Ready for Proposal" workflow in Opportunity
+* Job Lifecycle Stages:
+   * Proposal Preparation → Proposal Sent → Final Negotiation → Backlog → Closed/(Lost)
+* Project Status:
+   * To Be Started → On-Going (manual/auto) → Finished (manual/auto) → Closed (manual/auto)
+  
+
+C. Marking as Won or Lost
+Marking as Won:
+1. Upload Signed Contract to Job > click tab Documentation
+2. Set Job Stage to Backlog
+3. Update Expected Confirmation, Start, End Dates
+4. Leave Project Status as "To Be Started"
+5. Save and confirm all fields
+Marking as Lost / No Bid:
+* If no Job: Mark Opportunity as Lost > Reason: "Not Bid"
+* If Job exists: Mark Job as Lost > Reason: "Not Bid" → auto-closes Opportunity
+D. Uploading Documentation
+1. Go to Job > Documentation tab
+2. Select Document Type from the drop-down (NDA, RFP, Contract, etc.)
+3. Click Upload Files and choose the file to upload or Drag and Drop your file onto the Upload Files section and Save
+Always use correct Document Type for reporting purposes
+E. Invoicing Process for Completed Work
+A. Prerequisites
+* Ensure Salesforce has:
+   * Legal Client Name, Billing Address, Payment Terms, Job Code
+* Client Leader adds if needed; PM creates invoice in Metric
+B. Monthly Workflow
+1. PM creates invoices in Metric by Day 2 of month
+2. Confirm PO, LOI, or MSA are attached if needed
+3. Add Job Code, billing details, and Industry Leader approver
+4. Industry Leader approves invoice
+5. Maria exports summary and sends to Dale/Kateryna
+6. Invoices imported to SAP
+7. Kateryna reconciles SAP & Metric records
+8. Kateryna emails invoices to clients
+9. Dale marks invoice as paid in SAP
+Salesforce is not used for submitting/storing invoices
+C. Invoice Submission Checklist
+* Don't alter Job Code
+* Match MSA payment terms
+* Include PO if required
+* Add client email in Metric Reference
+* Don't backdate invoices
+* Edit all duplicated invoices with fresh details
+F. Closing Out Completed Jobs
+This section outlines how Jobs are closed once work is finished and invoicing is complete. Job closure is essential for ensuring accurate reporting, revenue recognition, and system hygiene. The closure process combines automation, RevOps oversight, and manual escalation safeguards.
+________________
+
+
+A. 🔁 Automated Closure Policy
+Salesforce automatically closes Jobs only if the End Date is more than 12 months old.
+This helps keep the pipeline clean by retiring outdated Jobs.
+________________
+
+
+B. 🛠 Manual Closure by Admins
+Matt Dho (primary) and Maria Stoyanova (backup) review Jobs marked Finished to confirm all work and invoicing are complete. If so, they manually update the Job Stage from Backlog → Closed.
+Jobs that don’t qualify for auto-closure are included in the admin review.
+________________
+
+
+C. What You Should Do if a Job Was Missed
+If you’re a Client Leader or Industry Leader and notice a Job that appears complete but is still in Backlog, simply slack/email Matt Dho or Maria Stoyanova and they will be able to take care of it. 
+________________
+
+
+D. Final Lock Notice
+Once a Job is marked as Closed, either through automation or RevOps, it becomes locked:
+* No further changes can be made
+* No invoices can be submitted
+* The Job becomes read-only for reporting and audit history
+7. Naming Conventions & Jakala Project Name Generator
+Use the Jakala Project Name Generator to standardize names across platforms:
+Create a Username and Password -> any login issues or bugs please reach out to Matt Dho.
+Inputs: Client + Project + Quarters
+Outputs:
+* Salesforce Job Name: ABC - Replatform - Q124-Q224 - ABC1234
+* Slack Channel: presales-ABC-Replatform-ABC1234
+* Monday/Float/Metric: ABC - Replatform - ABC1234
+* UID: ABCpr1234
+Always use this tool for naming across systems and 
+DON'T FORGET TO SAVE YOUR GENERATED PROJECT NAME
+________________
+
+
+8. Compliance & Reporting
+* Ensure Job-Opportunity links are intact
+* Perform monthly data audits
+* Invoice records in Metric & SAP must align
+Escalation Contacts:
+* Minor Issues: Internal Team
+* Major Issues: Matt Dho / Maria Stoyanova
+* System Support: sfa.support@jakala.com
+________________
+
+
+9. Custom Views & Reports
+Salesforce custom list views allow users to personalize how records are displayed by selecting and organizing columns and applying filters. These views improve efficiency by helping users focus only on relevant data.
+9.1 Recommended Custom List Views
+* Opportunity View - All Open Opportunities
+   * Shows all Opportunities that are not yet Won or Lost.
+   * {Client Leader} [Equals] (Your Name)
+   * {Stage} [Not equal to] (Closed - Won, Closed - Lost, Closed)
+* Job View - All Open Jobs
+   * Displays all Jobs that are not yet Won, Lost, or in Backlog.
+   * {Client Leader} [Equals] (Your Name)
+   * {Stage} [Not equal to] (Backlog, Closed, Lost)
+* Job View - All Backlog Jobs CQ
+   * Tracks Jobs in Backlog with an Expected Confirmation Date or Project Start Date within the Current Quarter.
+   * {Client Leader} [Equals] (Your Name)
+   * {Stage} [Equals] (Backlog)
+   * Filter Logic: (1 AND 2 AND (3 OR 4))
+________________
+
+
+10. Industry Categories
+Jakala has agreed globally on a group of industry groups and industries that all Opportunities, Jobs and Accounts must fall within. These also correspond with the Industries our Industry Leaders lead. 
+Financial Services & Insurance (FSI)
+* Banks & Financial Services
+* Insurance & Real Estate
+Consumer
+* Consumer Durables
+* FMCG & Grocery Retail
+* Fashion
+* Luxury
+* Travel & Leisure
+* Bars, Restaurants & Food Delivery
+* Sport
+* Beauty
+* Design & Furniture
+* Licensed & Premium Accessories
+TMT & Energy
+* Telecommunication Services & IT
+* Media & Entertainment
+* Energy, Petrol & Utilities
+Services
+* Commercial & Professional Services
+* Mobility, Transportation & Infrastructure
+* Education
+* Non-Profit
+Industrial & Automotive
+* Automotive
+* Capital Goods
+Pharma & Lifesciences
+* Pharma
+* Consumer Health
+* MedTech
+* Private Healthcare
+Government & Public Sector
+* No specific sub-industries listed
+________________
+
+
+11. Continuous Improvement & Support
+* Identify integration and workflow improvements
+* Maintain updated industry taxonomy
+________________
+
+
+End of SOP
