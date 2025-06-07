@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Home, Briefcase, Users, BarChart3, Calendar, 
@@ -100,7 +101,8 @@ export const Sidebar: React.FC = () => {
                       className="ml-4 mt-2 space-y-1 overflow-hidden"
                     >
                       {group.children.map((item) => (
-                        <button
+                        <Link
+                          to={item.id === 'dashboard' ? '/' : `/${item.id}`}
                           key={item.id}
                           className="flex items-center justify-between w-full px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200 rounded-lg transition-colors"
                         >
@@ -113,7 +115,7 @@ export const Sidebar: React.FC = () => {
                               {item.badge}
                             </span>
                           )}
-                        </button>
+                        </Link>
                       ))}
                     </motion.div>
                   )}
