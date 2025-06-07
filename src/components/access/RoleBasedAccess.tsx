@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Shield, Users, Eye, Edit, Trash2, Plus, 
-  Crown, UserCheck, Building, Briefcase, Settings
+  Crown, UserCheck, Building, Briefcase, Settings, X
 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useAuthContext } from '../auth/AuthProvider';
@@ -288,95 +288,98 @@ export const RoleBasedAccess: React.FC = () => {
       </div>
 
       {/* Role Details Modal */}
-      {selectedRole && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
-          >
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div 
-                    className="p-3 rounded-xl"
-                    style={{ backgroundColor: selectedRole.color + '20', color: selectedRole.color }}
+      <AnimatePresence>
+        {selectedRole && (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            >
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div 
+                      className="p-3 rounded-xl"
+                      style={{ backgroundColor: selectedRole.color + '20', color: selectedRole.color }}
+                    >
+                      {selectedRole.icon}
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                        {selectedRole.name}
+                      </h2>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        Access Level {selectedRole.level}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedRole(null)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                   >
-                    {selectedRole.icon}
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                      {selectedRole.name}
-                    </h2>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      Access Level {selectedRole.level}
-                    </p>
-                  </div>
+                    <X className="h-5 w-5 text-gray-500" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => setSelectedRole(null)}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                >
-                  <X className="h-5 w-5 text-gray-500" />
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-6">
-              <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Description</h3>
-                <p className="text-gray-600 dark:text-gray-400">{selectedRole.description}</p>
               </div>
 
-              <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Permissions</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {selectedRole.permissions.map(permissionId => {
-                    if (permissionId === '*') {
+              <div className="p-6 space-y-6">
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Description</h3>
+                  <p className="text-gray-600 dark:text-gray-400">{selectedRole.description}</p>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Permissions</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {selectedRole.permissions.map(permissionId => {
+                      if (permissionId === '*') {
+                        return (
+                          <div key="all\" className="flex items-center space-x-2 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                            <Crown className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                            <span className="text-sm font-medium text-purple-900 dark:text-purple-100">
+                              All Permissions
+                            </span>
+                          </div>
+                        );
+                      }
+                      
+                      const permission = systemPermissions.find(p => p.id === permissionId);
+                      if (!permission) return null;
+                      
                       return (
-                        <div key="all\" className="flex items-center space-x-2 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                          <Crown className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                          <span className="text-sm font-medium text-purple-900 dark:text-purple-100">
-                            All Permissions
-                          </span>
+                        <div key={permission.id} className="flex items-center space-x-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                          <div className="w-2 h-2 rounded-full bg-green-500" />
+                          <div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              {permission.name}
+                            </div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                              {permission.description}
+                            </div>
+                          </div>
                         </div>
                       );
-                    }
-                    
-                    const permission = systemPermissions.find(p => p.id === permissionId);
-                    if (!permission) return null;
-                    
-                    return (
-                      <div key={permission.id} className="flex items-center space-x-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <div className="w-2 h-2 rounded-full bg-green-500" />
-                        <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {permission.name}
-                          </div>
-                          <div className="text-xs text-gray-600 dark:text-gray-400">
-                            {permission.description}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                    })}
+                  </div>
                 </div>
-              </div>
 
-              {hasPermission('users:manage') && (
-                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <button className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                    Edit Role
-                  </button>
-                  <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    Assign to Users
-                  </button>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </div>
-      )}
+                {hasPermission('users:manage') && (
+                  <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                      Edit Role
+                    </button>
+                    <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                      Assign to Users
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 

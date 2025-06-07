@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Database, Upload, Settings, Users, Shield, 
   BarChart3, FileText, Download, AlertCircle,
