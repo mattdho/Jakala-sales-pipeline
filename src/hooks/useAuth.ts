@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase, getCurrentUser, getCurrentUserProfile } from '../lib/supabase';
+import { supabase, getCurrentUser, getCurrentUserProfile, handleSupabaseError } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import type { Database } from '../types/database';
 
@@ -21,7 +21,7 @@ export const useAuth = () => {
         if (currentUser) {
           const { profile: userProfile, error: profileError } = await getCurrentUserProfile();
           if (profileError) {
-            setError(profileError.toString());
+            setError(handleSupabaseError(profileError));
           } else {
             setProfile(userProfile);
           }
@@ -43,7 +43,7 @@ export const useAuth = () => {
         if (session?.user) {
           const { profile: userProfile, error: profileError } = await getCurrentUserProfile();
           if (profileError) {
-            setError(profileError.toString());
+            setError(handleSupabaseError(profileError));
           } else {
             setProfile(userProfile);
             setError(null);
@@ -63,7 +63,7 @@ export const useAuth = () => {
     if (user) {
       const { profile: userProfile, error: profileError } = await getCurrentUserProfile();
       if (profileError) {
-        setError(profileError.toString());
+        setError(handleSupabaseError(profileError));
       } else {
         setProfile(userProfile);
         setError(null);
