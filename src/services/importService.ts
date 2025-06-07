@@ -9,34 +9,52 @@ interface ImportResult {
   duplicates: number;
 }
 
-// Industry group mapping based on the provided data structure
+// Sample job data based on the projects_rows.csv structure
+const SAMPLE_JOB_DATA = [
+  {
+    name: 'Quaker Houghton - Stages 2-6 Design & Dev',
+    client_name: 'Quaker Houghton',
+    value: 450000,
+    stage: 'backlog',
+    industry_group: 'SMBA'
+  },
+  {
+    name: 'Notre Dame - Website Redesign and CMS Consolidation',
+    client_name: 'University of Notre Dame - Mendoza School of Business',
+    value: 180000,
+    stage: 'proposal_sent',
+    industry_group: 'HSNE'
+  }
+];
+
+// Correct Jakala Industry Group Mapping
 const INDUSTRY_GROUP_MAPPING: Record<string, string> = {
-  'SMBA': 'Services',
-  'HSNE': 'HSME', // Map to existing HSME group
-  'DXP': 'Services', // Map DXP to Services
-  'TLCG': 'Consumer', // Map to Consumer
-  'NEW_BIZ': 'Services'
+  'SMBA': 'SMBA',
+  'HSNE': 'HSNE',
+  'DXP': 'DXP',
+  'TLCG': 'TLCG',
+  'NEW_BUSINESS': 'NEW_BUSINESS'
 };
 
-// Team member to industry group mapping
+// Team member to industry group mapping based on actual Jakala structure
 const TEAM_INDUSTRY_MAPPING: Record<string, string[]> = {
-  'Amanda Konopko': ['Services'],
-  'Danielle Bathelemy': ['Services'],
-  'Liliana Zbirciog': ['Services'],
-  'Olga Kashchenko': ['Services'],
-  'Jeremiah Bowden': ['Services'],
-  'Mandee Englert': ['HSME'],
-  'Lindsay Dehm': ['HSME'],
-  'Lindsey Presley': ['HSME'],
-  'Bruce Clingan': ['HSME'],
-  'Tom Jones': ['HSME'],
-  'Alex Arnaut': ['Services'],
-  'Chris Miller': ['Services'],
-  'Chaney Moore': ['Services'],
-  'Daniel Bafico': ['Consumer'],
-  'Esteban Biancchi': ['Consumer'],
-  'Derry Backenkeller': ['Services'],
-  'Matt Rissmiller': ['Services']
+  'Amanda Konopko': ['SMBA'],
+  'Danielle Bathelemy': ['SMBA'],
+  'Liliana Zbirciog': ['SMBA'],
+  'Olga Kashchenko': ['SMBA'],
+  'Jeremiah Bowden': ['SMBA'],
+  'Mandee Englert': ['HSNE'],
+  'Lindsay Dehm': ['HSNE'],
+  'Lindsey Presley': ['HSNE'],
+  'Bruce Clingan': ['HSNE'],
+  'Tom Jones': ['HSNE'],
+  'Alex Arnaut': ['DXP'],
+  'Chris Miller': ['DXP'],
+  'Chaney Moore': ['DXP'],
+  'Daniel Bafico': ['TLCG'],
+  'Esteban Biancchi': ['TLCG'],
+  'Derry Backenkeller': ['NEW_BUSINESS'],
+  'Matt Rissmiller': ['NEW_BUSINESS']
 };
 
 export const importService = {
@@ -262,14 +280,16 @@ export const importService = {
       return 'Technology';
     } else if (lowerName.includes('manufacturing') || lowerName.includes('industrial')) {
       return 'Manufacturing';
+    } else if (lowerName.includes('travel') || lowerName.includes('hotel') || lowerName.includes('luxury')) {
+      return 'Travel & Hospitality';
     } else {
       return 'Professional Services';
     }
   },
 
-  // Helper function to map client codes to industry groups
+  // Helper function to map client codes to industry groups using correct Jakala structure
   mapToIndustryGroup(clientCode: string): string {
-    // Map based on the industry structure provided
+    // Map based on the correct industry structure
     const code = clientCode.toUpperCase();
     
     // Check if it's a known industry group code
@@ -278,14 +298,20 @@ export const importService = {
     }
     
     // Default mapping based on common patterns
-    if (code.includes('UNIV') || code.includes('COLLEGE') || code.includes('EDU')) {
-      return 'HSME';
-    } else if (code.includes('BANK') || code.includes('FIN')) {
-      return 'FSI';
-    } else if (code.includes('TECH') || code.includes('DXP')) {
-      return 'TMT';
+    if (code.includes('UNIV') || code.includes('COLLEGE') || code.includes('EDU') || 
+        code.includes('SCHOOL') || code.includes('SPORT') || code.includes('NON-PROFIT')) {
+      return 'HSNE';
+    } else if (code.includes('LUXURY') || code.includes('TRAVEL') || code.includes('HOTEL') ||
+               code.includes('FASHION') || code.includes('BEAUTY') || code.includes('RETAIL')) {
+      return 'TLCG';
+    } else if (code.includes('TECH') || code.includes('DXP') || code.includes('SOFTWARE') ||
+               code.includes('DIGITAL') || code.includes('DEV')) {
+      return 'DXP';
+    } else if (code.includes('MFG') || code.includes('MANUFACTURING') || code.includes('INDUSTRIAL') ||
+               code.includes('SERVICE') || code.includes('B2B') || code.includes('AGRICULTURE')) {
+      return 'SMBA';
     } else {
-      return 'Services'; // Default fallback
+      return 'NEW_BUSINESS'; // Default for new opportunities
     }
   },
 
@@ -316,5 +342,10 @@ export const importService = {
   // Download CSV templates
   downloadTemplate(type: 'clients' | 'projects') {
     return enterpriseImportService.downloadTemplate(type);
+  },
+
+  // Updated mapping function for team members
+  getTeamIndustryGroups(teamMemberName: string): string[] {
+    return TEAM_INDUSTRY_MAPPING[teamMemberName] || ['NEW_BUSINESS'];
   }
 };

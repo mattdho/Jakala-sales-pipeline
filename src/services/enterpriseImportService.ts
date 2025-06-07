@@ -50,7 +50,7 @@ export class EnterpriseImportService {
         { field: 'name', type: 'required', message: 'Account name is required' },
         { field: 'legal_name', type: 'required', message: 'Legal name is required' },
         { field: 'industry', type: 'required', message: 'Industry is required' },
-        { field: 'industry_group', type: 'enum', value: ['FSI', 'Consumer', 'TMT', 'Services', 'Industrial', 'Pharma', 'Government'], message: 'Invalid industry group' },
+        { field: 'industry_group', type: 'enum', value: ['SMBA', 'HSNE', 'DXP', 'TLCG', 'NEW_BUSINESS'], message: 'Invalid industry group' },
         { field: 'payment_terms', type: 'enum', value: ['Net 15', 'Net 30', 'Net 45', 'Net 60', 'Due on Receipt'], message: 'Invalid payment terms' },
         { field: 'name', type: 'length', value: { min: 2, max: 255 }, message: 'Name must be between 2 and 255 characters' }
       ],
@@ -523,14 +523,15 @@ export class EnterpriseImportService {
 
   private mapIndustryGroup(code: string): string {
     const mapping: Record<string, string> = {
-      'SMBA': 'Services',
-      'HSNE': 'HSME',
-      'DXP': 'Services',
-      'TLCG': 'Consumer',
-      'NEW_BIZ': 'Services'
+      'SMBA': 'SMBA',
+      'HSNE': 'HSNE',
+      'DXP': 'DXP',
+      'TLCG': 'TLCG',
+      'NEW_BUSINESS': 'NEW_BUSINESS',
+      'NEW_BIZ': 'NEW_BUSINESS'
     };
     
-    return mapping[code.toUpperCase()] || 'Services';
+    return mapping[code.toUpperCase()] || 'NEW_BUSINESS';
   }
 
   private extractIndustryFromName(name: string): string {
@@ -544,6 +545,10 @@ export class EnterpriseImportService {
       return 'Healthcare';
     } else if (lowerName.includes('tech') || lowerName.includes('software')) {
       return 'Technology';
+    } else if (lowerName.includes('travel') || lowerName.includes('luxury')) {
+      return 'Travel & Luxury';
+    } else if (lowerName.includes('manufacturing') || lowerName.includes('industrial')) {
+      return 'Manufacturing';
     } else {
       return 'Professional Services';
     }

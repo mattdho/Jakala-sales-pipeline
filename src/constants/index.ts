@@ -22,52 +22,72 @@ export const PROJECT_STATUSES = [
 ] as const;
 
 export const INDUSTRY_GROUPS = {
-  'FSI': {
-    name: 'Financial Services & Insurance',
+  'SMBA': {
+    name: 'Services, Manufacturing, B2B, Agriculture',
     color: '#3B82F6',
-    industries: ['Banks & Financial Services', 'Insurance & Real Estate']
+    leader: 'Amanda Konopko',
+    industries: [
+      'Commercial & Professional Services',
+      'Manufacturing',
+      'Industrial Automation',
+      'B2B Technology',
+      'Agriculture & Food Production',
+      'Construction & Building Materials',
+      'Logistics & Supply Chain'
+    ]
   },
-  'Consumer': {
-    name: 'Consumer',
+  'HSNE': {
+    name: 'Higher Education, Non-Profit, Sports, Entertainment',
     color: '#10B981',
+    leader: 'Mandee Englert',
     industries: [
-      'Consumer Durables', 'FMCG & Grocery Retail', 'Fashion', 'Luxury',
-      'Travel & Leisure', 'Bars, Restaurants & Food Delivery', 'Sport',
-      'Beauty', 'Design & Furniture', 'Licensed & Premium Accessories'
+      'Higher Education',
+      'K-12 Education',
+      'Non-Profit Organizations',
+      'Sports & Recreation',
+      'Entertainment & Media',
+      'Cultural Institutions',
+      'Religious Organizations'
     ]
   },
-  'TMT': {
-    name: 'TMT & Energy',
-    color: '#F59E0B',
-    industries: [
-      'Telecommunication Services & IT', 'Media & Entertainment',
-      'Energy, Petrol & Utilities'
-    ]
-  },
-  'Services': {
-    name: 'Services',
+  'DXP': {
+    name: 'DXP Build and Support',
     color: '#8B5CF6',
+    leader: 'Alex Arnaut',
     industries: [
-      'Commercial & Professional Services', 'Mobility, Transportation & Infrastructure',
-      'Education', 'Non-Profit'
+      'Digital Experience Platforms',
+      'Technology Implementation',
+      'Software Development',
+      'Digital Infrastructure',
+      'Cloud Services',
+      'DevOps & Technical Support'
     ]
   },
-  'Industrial': {
-    name: 'Industrial & Automotive',
+  'TLCG': {
+    name: 'Travel, Luxury & Consumer Goods',
+    color: '#F59E0B',
+    leader: 'Daniel Bafico',
+    industries: [
+      'Travel & Tourism',
+      'Hospitality',
+      'Luxury Brands',
+      'Fashion & Apparel',
+      'Beauty & Cosmetics',
+      'Consumer Electronics',
+      'Food & Beverage',
+      'Retail & E-commerce'
+    ]
+  },
+  'NEW_BUSINESS': {
+    name: 'New Business Acquisition',
     color: '#EF4444',
-    industries: ['Automotive', 'Capital Goods']
-  },
-  'Pharma': {
-    name: 'Pharma & Lifesciences',
-    color: '#06B6D4',
+    leader: 'Business Development',
     industries: [
-      'Pharma', 'Consumer Health', 'MedTech', 'Private Healthcare'
+      'New Market Opportunities',
+      'Emerging Industries',
+      'Strategic Partnerships',
+      'Market Expansion'
     ]
-  },
-  'Government': {
-    name: 'Government & Public Sector',
-    color: '#84CC16',
-    industries: ['Government & Public Sector']
   }
 } as const;
 

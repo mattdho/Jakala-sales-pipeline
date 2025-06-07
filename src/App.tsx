@@ -5,6 +5,7 @@ import { AuthProvider } from './components/auth/AuthProvider';
 import { Routes, Route } from 'react-router-dom';
 
 import Dashboard from './pages/Dashboard';
+import EnterpriseDashboard from './pages/EnterpriseDashboard';
 import Opportunities from './pages/Opportunities';
 import Jobs from './pages/Jobs';
 import Calendar from './pages/Calendar';
@@ -32,7 +33,15 @@ const App: React.FC = () => (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          {/* Enterprise Dashboard as primary interface */}
+          <Route path="/" element={<EnterpriseDashboard />} />
+          <Route path="/enterprise" element={<EnterpriseDashboard />} />
+          
+          {/* Legacy dashboard accessible via /legacy */}
+          <Route path="/legacy" element={<Dashboard />} />
+          <Route path="/legacy-enterprise" element={<DataImportEnterprise />} />
+          
+          {/* Standard operational routes */}
           <Route path="/opportunities" element={<Opportunities />} />
           <Route path="/jobs" element={<Jobs />} />
           <Route path="/calendar" element={<Calendar />} />
@@ -42,7 +51,6 @@ const App: React.FC = () => (
           <Route path="/documents" element={<Documents />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/data-import" element={<DataImport />} />
-          <Route path="/enterprise" element={<DataImportEnterprise />} />
         </Routes>
       </AuthProvider>
     </QueryClientProvider>
