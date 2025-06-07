@@ -4,7 +4,7 @@ import { ArrowRight, Plus, MoreHorizontal } from 'lucide-react';
 import { OPPORTUNITY_STAGES, JOB_STAGES, INDUSTRY_GROUPS } from '../../constants';
 import type { Opportunity, Job } from '../../types';
 
-interface DualPipelineViewProps {
+interface KanbanViewProps {
   opportunities: Opportunity[];
   jobs: Job[];
   onCreateOpportunity: () => void;
@@ -13,7 +13,7 @@ interface DualPipelineViewProps {
   onEditJob: (job: Job) => void;
 }
 
-export const DualPipelineView: React.FC<DualPipelineViewProps> = ({
+export const KanbanView: React.FC<KanbanViewProps> = ({
   opportunities,
   jobs,
   onCreateOpportunity,
