@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User, FilterState, ViewMode, PipelineMetrics } from '../types';
+import type { User, FilterState, ViewMode, PipelineMetrics, Opportunity, Job } from '../types';
 
 interface AppState {
   // User & Auth
@@ -16,6 +16,17 @@ interface AppState {
   
   commandPaletteOpen: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
+  
+  // Modal State
+  isOpportunityModalOpen: boolean;
+  setOpportunityModalOpen: (open: boolean) => void;
+  editingOpportunity: Opportunity | null;
+  setEditingOpportunity: (opportunity: Opportunity | null) => void;
+  
+  isJobModalOpen: boolean;
+  setJobModalOpen: (open: boolean) => void;
+  editingJob: Job | null;
+  setEditingJob: (job: Job | null) => void;
   
   // View State
   viewMode: ViewMode;
@@ -68,6 +79,17 @@ export const useStore = create<AppState>()(
       
       commandPaletteOpen: false,
       setCommandPaletteOpen: (commandPaletteOpen) => set({ commandPaletteOpen }),
+      
+      // Modal State
+      isOpportunityModalOpen: false,
+      setOpportunityModalOpen: (isOpportunityModalOpen) => set({ isOpportunityModalOpen }),
+      editingOpportunity: null,
+      setEditingOpportunity: (editingOpportunity) => set({ editingOpportunity }),
+      
+      isJobModalOpen: false,
+      setJobModalOpen: (isJobModalOpen) => set({ isJobModalOpen }),
+      editingJob: null,
+      setEditingJob: (editingJob) => set({ editingJob }),
       
       // View State
       viewMode: initialViewMode,

@@ -19,6 +19,8 @@ import { CommandPalette } from './components/ui/CommandPalette';
 import { MetricsGrid } from './components/dashboard/MetricsGrid';
 import { DualPipelineView } from './components/pipeline/DualPipelineView';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
+import { OpportunityModal } from './components/modals/OpportunityModal';
+import { JobModal } from './components/modals/JobModal';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,7 +34,15 @@ const queryClient = new QueryClient({
 });
 
 const AppContent: React.FC = () => {
-  const { theme, sidebarOpen, filters } = useStore();
+  const { 
+    theme, 
+    sidebarOpen, 
+    filters,
+    setOpportunityModalOpen,
+    setEditingOpportunity,
+    setJobModalOpen,
+    setEditingJob
+  } = useStore();
   
   useKeyboardShortcuts();
 
@@ -47,19 +57,23 @@ const AppContent: React.FC = () => {
   }, [theme]);
 
   const handleCreateOpportunity = () => {
-    console.log('Create opportunity');
+    setEditingOpportunity(null);
+    setOpportunityModalOpen(true);
   };
 
   const handleCreateJob = () => {
-    console.log('Create job');
+    setEditingJob(null);
+    setJobModalOpen(true);
   };
 
   const handleEditOpportunity = (opportunity: any) => {
-    console.log('Edit opportunity:', opportunity);
+    setEditingOpportunity(opportunity);
+    setOpportunityModalOpen(true);
   };
 
   const handleEditJob = (job: any) => {
-    console.log('Edit job:', job);
+    setEditingJob(job);
+    setJobModalOpen(true);
   };
 
   // Combine metrics from both opportunities and jobs
@@ -108,6 +122,8 @@ const AppContent: React.FC = () => {
       <Header />
       <Sidebar />
       <CommandPalette />
+      <OpportunityModal />
+      <JobModal />
       
       <main className={`transition-all duration-300 ${
         sidebarOpen ? 'ml-64' : 'ml-0'

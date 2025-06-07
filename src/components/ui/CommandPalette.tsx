@@ -17,7 +17,14 @@ interface CommandItem {
 }
 
 export const CommandPalette: React.FC = () => {
-  const { commandPaletteOpen, setCommandPaletteOpen } = useStore();
+  const { 
+    commandPaletteOpen, 
+    setCommandPaletteOpen,
+    setOpportunityModalOpen,
+    setJobModalOpen,
+    setEditingOpportunity,
+    setEditingJob
+  } = useStore();
   const [search, setSearch] = useState('');
 
   const commands: CommandItem[] = [
@@ -27,7 +34,8 @@ export const CommandPalette: React.FC = () => {
       subtitle: 'Create a new sales opportunity',
       icon: <Plus className="h-4 w-4" />,
       action: () => {
-        // TODO: Open opportunity modal
+        setEditingOpportunity(null);
+        setOpportunityModalOpen(true);
         setCommandPaletteOpen(false);
       },
       keywords: ['new', 'opportunity', 'create', 'add']
@@ -38,7 +46,8 @@ export const CommandPalette: React.FC = () => {
       subtitle: 'Create a new project job',
       icon: <FileText className="h-4 w-4" />,
       action: () => {
-        // TODO: Open job modal
+        setEditingJob(null);
+        setJobModalOpen(true);
         setCommandPaletteOpen(false);
       },
       keywords: ['new', 'job', 'project', 'create', 'add']
