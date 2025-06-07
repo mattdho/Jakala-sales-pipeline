@@ -34,7 +34,7 @@ export const signUp = async (email: string, password: string, userData: any) => 
     
     if (error) throw error;
     
-    // Create user profile
+    // Create user profile - this will work with the new simplified RLS
     if (data.user) {
       const { error: profileError } = await supabase
         .from('users')
@@ -48,6 +48,7 @@ export const signUp = async (email: string, password: string, userData: any) => 
         
       if (profileError) {
         console.error('Error creating user profile:', profileError);
+        // Don't throw here - user is created, profile creation can be retried
       }
     }
     
@@ -106,6 +107,34 @@ export const getCurrentUserProfile = async () => {
   } catch (error) {
     console.error('Get user profile error:', error);
     return { profile: null, error };
+  }
+};
+
+// Helper function to check if current user is admin
+export const isCurrentUserAdmin = async () => {
+  try {
+    const { profile } = await getCurrentUserProfile();
+    return profile?.role === 'admin';
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return false;
+  }
+};
+
+// Helper function to check if user can access industry group
+export const canAccessIndustryGroup = async (industryGroup: string) => {
+  try {
+    const { profile } = await getCurrentUserProfile();
+    if (!profile) return false;
+    
+    // Admins can access everything
+    if (profile.role === 'admin') return true;
+    
+    // Check if user's industry groups include the requested group
+    return profile.industry_groups?.includes(industryGroup) || false;
+  } catch (error) {
+    console.error('Error checking industry group access:', error);
+    return false;
   }
 };
 
@@ -238,6 +267,9 @@ export const handleSupabaseError = (error: any) => {
   if (error?.code === '23503') {
     return 'Cannot delete this record because it is referenced by other data.';
   }
+  if (error?.message?.includes('infinite recursion')) {
+    return 'Database configuration error. Please contact support.';
+  }
   
   return error?.message || 'An unexpected error occurred.';
-};
+}

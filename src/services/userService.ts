@@ -1,4 +1,4 @@
-import { supabase, logActivity, handleSupabaseError } from '../lib/supabase';
+import { supabase, logActivity, handleSupabaseError, isCurrentUserAdmin } from '../lib/supabase';
 import type { Database } from '../types/database';
 
 type User = Database['public']['Tables']['users']['Row'];
@@ -50,8 +50,19 @@ export const userService = {
     }
   },
 
-  async update(id: string, updates: UserUpdate) {
+  async update(id: string, updates: UserUpdate) => {
     try {
+      // Check if current user can update this user
+      const { user: currentUser } = await supabase.auth.getUser();
+      if (!currentUser) throw new Error('Not authenticated');
+      
+      const isAdmin = await isCurrentUserAdmin();
+      const isOwnProfile = currentUser.id === id;
+      
+      if (!isAdmin && !isOwnProfile) {
+        throw new Error('You can only update your own profile');
+      }
+
       const { data, error } = await supabase
         .from('users')
         .update(updates)
@@ -69,7 +80,7 @@ export const userService = {
     }
   },
 
-  async getActivityLogs(userId: string, limit: number = 50) {
+  async getActivityLogs(userId: string, limit: number = 50) => {
     try {
       const { data, error } = await supabase
         .from('activity_logs')
