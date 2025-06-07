@@ -17,6 +17,7 @@ import { PipelineView } from '../components/pipeline/PipelineView';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { OpportunityModal } from '../components/modals/OpportunityModal';
 import { JobModal } from '../components/modals/JobModal';
+import { FilterDrawer } from '../components/FilterDrawer';
 
 const Dashboard: React.FC = () => {
   const {
@@ -33,14 +34,29 @@ const Dashboard: React.FC = () => {
 
   useKeyboardShortcuts();
 
-  const { data: opportunitiesData, isLoading: opportunitiesLoading, error: opportunitiesError } = useOpportunities(filters);
-  const { data: jobsData, isLoading: jobsLoading, error: jobsError } = useJobs(filters);
+  const {
+    data: opportunitiesData,
+    isLoading: opportunitiesLoading,
+    error: opportunitiesError,
+    refetch: refetchOpportunities
+  } = useOpportunities(filters);
+  const {
+    data: jobsData,
+    isLoading: jobsLoading,
+    error: jobsError,
+    refetch: refetchJobs
+  } = useJobs(filters);
   const { data: opportunityMetrics } = useOpportunityMetrics();
   const { data: jobMetrics } = useJobMetrics();
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
+
+  useEffect(() => {
+    refetchOpportunities();
+    refetchJobs();
+  }, [filters, refetchOpportunities, refetchJobs]);
 
   const handleCreateOpportunity = () => {
     setEditingOpportunity(null);
@@ -121,6 +137,7 @@ const Dashboard: React.FC = () => {
       <CommandPalette />
       <OpportunityModal />
       <JobModal />
+      <FilterDrawer />
 
       <main className={`transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'} pt-6`}>
         <div className="px-4 sm:px-6 lg:px-8 pb-8">

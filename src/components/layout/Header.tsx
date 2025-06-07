@@ -7,12 +7,14 @@ import {
 import { useStore } from '../../store/useStore';
 
 export const Header: React.FC = () => {
-  const { 
-    sidebarOpen, 
-    setSidebarOpen, 
-    theme, 
-    setTheme, 
+  const {
+    sidebarOpen,
+    setSidebarOpen,
+    theme,
+    setTheme,
     setCommandPaletteOpen,
+    isFilterDrawerOpen,
+    setFilterDrawerOpen,
     filters,
     setFilters
   } = useStore();
@@ -69,10 +71,10 @@ export const Header: React.FC = () => {
         {/* Right Section */}
         <div className="flex items-center space-x-2">
           <button
-            onClick={() => {/* TODO: Toggle filters */}}
+            onClick={() => setFilterDrawerOpen(!isFilterDrawerOpen)}
             className={`p-2 rounded-lg transition-colors ${
-              hasActiveFilters 
-                ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' 
+              hasActiveFilters
+                ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
                 : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'
             }`}
           >

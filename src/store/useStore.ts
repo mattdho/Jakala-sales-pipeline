@@ -16,6 +16,10 @@ interface AppState {
   
   commandPaletteOpen: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
+
+  // Filters Drawer
+  isFilterDrawerOpen: boolean;
+  setFilterDrawerOpen: (open: boolean) => void;
   
   // Modal State
   isOpportunityModalOpen: boolean;
@@ -79,6 +83,9 @@ export const useStore = create<AppState>()(
       
       commandPaletteOpen: false,
       setCommandPaletteOpen: (commandPaletteOpen) => set({ commandPaletteOpen }),
+
+      isFilterDrawerOpen: false,
+      setFilterDrawerOpen: (isFilterDrawerOpen) => set({ isFilterDrawerOpen }),
       
       // Modal State
       isOpportunityModalOpen: false,
