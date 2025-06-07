@@ -12,6 +12,7 @@ import Analytics from './pages/Analytics';
 import Team from './pages/Team';
 import Accounts from './pages/Accounts';
 import Documents from './pages/Documents';
+import SettingsPage from './pages/Settings';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,6 +38,7 @@ const App: React.FC = () => (
           <Route path="/team" element={<Team />} />
           <Route path="/accounts" element={<Accounts />} />
           <Route path="/documents" element={<Documents />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </AuthProvider>
     </QueryClientProvider>

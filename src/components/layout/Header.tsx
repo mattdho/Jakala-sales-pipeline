@@ -1,10 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Search, Menu, Bell, Settings, User, 
+import {
+  Search, Menu, Bell, Settings, User,
   Command, Sun, Moon, Plus, Filter
 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
+import { useNavigate } from 'react-router-dom';
 
 export const Header: React.FC = () => {
   const {
@@ -18,6 +19,7 @@ export const Header: React.FC = () => {
     filters,
     setFilters
   } = useStore();
+  const navigate = useNavigate();
 
   const hasActiveFilters = Object.values(filters).some(value => 
     Array.isArray(value) ? value.length > 0 : value !== ''
@@ -100,7 +102,10 @@ export const Header: React.FC = () => {
             {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
           </button>
 
-          <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors">
+          <button
+            onClick={() => navigate('/settings')}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors"
+          >
             <Settings className="h-5 w-5" />
           </button>
 
